@@ -399,6 +399,22 @@
     .np-volume{ display:none; }
     .grid{ grid-template-columns: repeat(auto-fill, minmax(128px,1fr)); gap:12px; }
   }
+
+  .debug-toggle{
+    position:fixed; bottom:130px; right:18px; z-index:60; width:34px; height:34px;
+    border-radius:50%; background: rgba(0,0,0,.55); backdrop-filter: blur(10px);
+    border:1px solid var(--glass-border); display:flex; align-items:center; justify-content:center;
+    font-size:15px; opacity:.55;
+  }
+  .debug-panel{
+    position:fixed; bottom:172px; right:18px; z-index:60; width:min(320px, 80vw); max-height:40vh;
+    overflow-y:auto; background: rgba(0,0,0,.85); backdrop-filter: blur(14px);
+    border:1px solid var(--glass-border); border-radius: 14px; padding:10px 12px;
+    font-family: ui-monospace, monospace; font-size:10.5px; line-height:1.5; color:#9fe6a0;
+    display:none;
+  }
+  .debug-panel.open{ display:block; }
+  .debug-panel .err{ color:#ff6b6b; }
 </style>
 </head>
 <body>
@@ -517,9 +533,30 @@
 
   <div id="yt-hidden" style="position:absolute;width:0;height:0;overflow:hidden;"></div>
 
+  <button class="debug-toggle" id="debugToggle" aria-label="Diagnostic">🐞</button>
+  <div class="debug-panel" id="debugPanel"></div>
+
 <script>
 (function(){
   "use strict";
+
+  /* ============ Debug panel ============ */
+  const debugPanel = document.getElementById("debugPanel");
+  const debugToggle = document.getElementById("debugToggle");
+  debugToggle.addEventListener("click", ()=> debugPanel.classList.toggle("open"));
+  function debugLog(msg, isError){
+    const line = document.createElement("div");
+    if(isError) line.className = "err";
+    const t = new Date().toLocaleTimeString("fr-FR");
+    line.textContent = `[${t}] ${msg}`;
+    debugPanel.appendChild(line);
+    debugPanel.scrollTop = debugPanel.scrollHeight;
+  }
+  window.addEventListener("error", (e)=> debugLog("Erreur JS: " + e.message, true));
+  debugLog("Script chargé.");
+  setTimeout(()=>{
+    if(!playerReady) debugLog("⚠️ Le lecteur YouTube n'est toujours pas prêt après 6s (API bloquée ou domaine non autorisé ?).", true);
+  }, 6000);
 
   /* ============ State ============ */
   const STORAGE_KEY = "echo_music_data_v1";
@@ -772,6 +809,7 @@
   });
 
   function runSearch(query){
+    debugLog("Recherche lancée: " + query);
     currentView = "discover";
     document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("active"));
     document.querySelector('.nav-item[data-view="discover"]').classList.add("active");
@@ -781,6 +819,7 @@
     contentEl.innerHTML = `<div class="section-title">Résultats pour « ${escapeHtml(query)} »</div><div class="spinner"></div>`;
 
     if(!playerReady){
+      debugLog("Lecteur pas encore prêt, recherche mise en attente.");
       pendingAutoplayQuery = query;
       return;
     }
@@ -790,7 +829,9 @@
   function doYouTubeSearch(query){
     try{
       player.loadPlaylist({ listType: "search", list: query, maxResults: 16 });
+      debugLog("loadPlaylist appelé pour: " + query);
     }catch(err){
+      debugLog("Erreur loadPlaylist: " + err.message, true);
       showSearchError();
       return;
     }
@@ -800,12 +841,14 @@
   function pollForSearchResults(query, attempt){
     const maxAttempts = 10; // ~5s total
     let ids = [];
-    try{ ids = player.getPlaylist() || []; }catch(e){}
+    try{ ids = player.getPlaylist() || []; }catch(e){ debugLog("Erreur getPlaylist: " + e.message, true); }
+    debugLog(`Tentative ${attempt+1}/${maxAttempts+1}: ${ids.length} id(s) trouvé(s).`);
 
     if(!ids.length){
       if(attempt < maxAttempts){
         setTimeout(()=> pollForSearchResults(query, attempt+1), 500);
       } else {
+        debugLog("⚠️ Aucun résultat après " + (maxAttempts+1) + " tentatives — l'astuce de recherche YouTube (listType:search) a échoué côté YouTube.", true);
         showSearchError();
       }
       return;
@@ -1080,10 +1123,11 @@
   window.onYouTubeIframeAPIReady = function(){
     player = new YT.Player("yt-hidden", {
       height: "0", width: "0",
-      playerVars: { autoplay: 1, controls: 0, disablekb: 1, playsinline: 1 },
+      playerVars: { autoplay: 1, controls: 0, disablekb: 1, playsinline: 1, origin: window.location.origin },
       events: {
         onReady: function(){
           playerReady = true;
+          debugLog("Lecteur YouTube prêt.");
           player.setVolume(70);
           volumeFill.style.width = "70%";
           startProgressLoop();
@@ -1105,7 +1149,8 @@
             playNextTrack();
           }
         },
-        onError: function(){
+        onError: function(e){
+          debugLog("Erreur lecteur YouTube (code " + (e && e.data) + ")", true);
           playNextTrack();
         }
       }
