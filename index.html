@@ -74,9 +74,11 @@
     position:relative; z-index:1;
     display:grid;
     grid-template-columns: 264px 1fr;
-    height:100vh;
+    height: 100vh;
+    height: 100dvh;
     padding: 14px 14px 118px 14px;
     gap: 14px;
+    min-height: 0;
   }
 
   .glass-panel{
@@ -98,6 +100,7 @@
   .sidebar{
     display:flex; flex-direction:column; padding: 22px 16px;
     animation: rise .6s var(--ease-spring) both;
+    min-height: 0;
   }
   .logo{
     font-size: 21px; font-weight: 800; letter-spacing: -0.02em;
@@ -129,7 +132,7 @@
     transition: transform .2s var(--ease-spring), background .2s;
   }
   #newPlaylistBtn:hover{ background: var(--accent-a); transform: scale(1.1) rotate(90deg); }
-  #playlistList{ overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding-bottom:8px; }
+  #playlistList{ overflow-y:auto; -webkit-overflow-scrolling: touch; display:flex; flex-direction:column; gap:1px; padding-bottom:8px; min-height:0; }
   #playlistList::-webkit-scrollbar{ width:5px; }
   #playlistList::-webkit-scrollbar-thumb{ background: var(--glass-strong); border-radius:4px; }
   .playlist-row{
@@ -145,7 +148,7 @@
   .playlist-del:hover{ color: var(--accent-c); }
 
   /* ---------- Main ---------- */
-  .main{ display:flex; flex-direction:column; min-width:0; gap:14px; }
+  .main{ display:flex; flex-direction:column; min-width:0; min-height:0; gap:14px; }
 
   .topbar{
     display:flex; align-items:center; gap:12px; padding: 12px 18px;
@@ -168,7 +171,8 @@
   #searchInput::placeholder{ color: var(--text-3); }
 
   .content{
-    flex:1; overflow-y:auto; padding: 4px 18px 24px;
+    flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling: touch;
+    padding: 4px 18px 24px;
     animation: rise .6s .1s var(--ease-spring) both;
   }
   .content::-webkit-scrollbar{ width:7px; }
@@ -363,14 +367,30 @@
   .btn-ghost:hover{ background: var(--glass-strong); color:#fff; }
   .hidden{ display:none !important; }
 
+  /* ---------- Sidebar close button (mobile) ---------- */
+  .sidebar-close{
+    display:none; position:absolute; top:16px; right:14px; width:32px; height:32px;
+    border-radius:50%; background: var(--glass-strong); align-items:center; justify-content:center;
+    font-size:15px; color: var(--text-1); transition: transform .2s var(--ease-spring), background .2s;
+  }
+  .sidebar-close:hover{ background: var(--accent-c); transform: scale(1.08); }
+
+  .sidebar-backdrop{
+    display:none; position:fixed; inset:0; z-index:29; background: rgba(0,0,0,.5);
+    backdrop-filter: blur(3px); opacity:0; pointer-events:none; transition: opacity .3s var(--ease-smooth);
+  }
+  .sidebar-backdrop.open{ opacity:1; pointer-events:auto; }
+
   /* ---------- Mobile ---------- */
   @media (max-width: 860px){
     .app{ grid-template-columns: 1fr; padding: 10px 10px 128px; }
     .sidebar{
       position:fixed; top:10px; bottom:128px; left:10px; width:240px; z-index:30;
-      transform: translateX(-260px); transition: transform .35s var(--ease-spring);
+      transform: translateX(-280px); transition: transform .35s var(--ease-spring);
     }
     .sidebar.open{ transform:none; }
+    .sidebar-close{ display:flex; }
+    .sidebar-backdrop{ display:block; }
     .mobile-only{ display:flex; width:38px; height:38px; border-radius:50%; background:var(--glass); align-items:center; justify-content:center; font-size:16px; }
     .now-playing{ grid-template-columns: 1fr auto; height:auto; padding:10px 14px; row-gap:8px; }
     .np-center{ grid-column: 1 / -1; order:3; }
@@ -391,8 +411,11 @@
     <div class="blob blob-3"></div>
   </div>
 
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
   <div class="app">
     <aside class="sidebar glass-panel" id="sidebar">
+      <button class="sidebar-close" id="sidebarCloseBtn" aria-label="Fermer le menu">✕</button>
       <div class="logo">Écho</div>
       <nav>
         <button class="nav-item active" data-view="discover"><span class="ic">✦</span> Découvrir</button>
@@ -580,8 +603,22 @@
     });
   });
 
-  sidebarToggle.addEventListener("click", ()=> sidebar.classList.toggle("open"));
-  function closeSidebarMobile(){ if(window.innerWidth <= 860) sidebar.classList.remove("open"); }
+  const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+  const sidebarCloseBtn = document.getElementById("sidebarCloseBtn");
+
+  function openSidebarMobile(){
+    sidebar.classList.add("open");
+    sidebarBackdrop.classList.add("open");
+  }
+  function closeSidebarMobile(){
+    sidebar.classList.remove("open");
+    sidebarBackdrop.classList.remove("open");
+  }
+  sidebarToggle.addEventListener("click", ()=>{
+    sidebar.classList.contains("open") ? closeSidebarMobile() : openSidebarMobile();
+  });
+  sidebarCloseBtn.addEventListener("click", closeSidebarMobile);
+  sidebarBackdrop.addEventListener("click", closeSidebarMobile);
 
   /* ============ Playlists sidebar render ============ */
   function renderPlaylistsSidebar(){
@@ -757,10 +794,24 @@
       showSearchError();
       return;
     }
-    setTimeout(async ()=>{
-      let ids = [];
-      try{ ids = player.getPlaylist() || []; }catch(e){}
-      if(!ids.length){ showSearchError(); return; }
+    pollForSearchResults(query, 0);
+  }
+
+  function pollForSearchResults(query, attempt){
+    const maxAttempts = 10; // ~5s total
+    let ids = [];
+    try{ ids = player.getPlaylist() || []; }catch(e){}
+
+    if(!ids.length){
+      if(attempt < maxAttempts){
+        setTimeout(()=> pollForSearchResults(query, attempt+1), 500);
+      } else {
+        showSearchError();
+      }
+      return;
+    }
+
+    (async ()=>{
       const tracks = await Promise.all(ids.map(id=>fetchOembed(id)));
       const validTracks = tracks.filter(Boolean);
       if(!validTracks.length){ showSearchError(); return; }
@@ -771,13 +822,13 @@
       // player already started via loadPlaylist; sync UI to the currently playing item
       syncNowPlayingMeta(validTracks[0]);
       enablePlayerControls();
-    }, 1000);
+    })();
   }
 
   function showSearchError(){
     contentEl.innerHTML = `<div class="section-title">Recherche</div>` + emptyStateHtml(
       "Aucun résultat trouvé",
-      "Essaie un autre nom d'artiste ou de titre."
+      "Essaie un autre nom d'artiste ou de titre, ou relance la recherche."
     );
   }
 
