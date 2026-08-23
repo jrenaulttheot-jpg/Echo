@@ -411,6 +411,9 @@
             <input id="searchInput" type="text" placeholder="Un artiste, un titre, une ambiance..." autocomplete="off">
           </div>
         </form>
+        <button class="icon-btn" id="settingsBtn" aria-label="Réglages (clé API YouTube)" title="Clé API YouTube">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
       </header>
 
       <section class="content glass-panel" id="content"></section>
@@ -487,7 +490,23 @@
     </div>
   </div>
 
-  <div id="yt-hidden" style="position:absolute;width:0;height:0;overflow:hidden;"></div>
+  <div class="modal-overlay" id="apiKeyModalOverlay">
+    <div class="modal">
+      <h3>Clé API YouTube</h3>
+      <p style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin-bottom:12px;">
+        La recherche a besoin d'une clé API YouTube gratuite. Sur
+        <span style="color:#fff;">console.cloud.google.com</span> : crée un projet →
+        active « YouTube Data API v3 » → Identifiants → Créer une clé API → colle-la ici.
+      </p>
+      <input class="modal-input" id="apiKeyInput" placeholder="Colle ta clé API ici..." autocomplete="off">
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="apiKeyClearBtn">Effacer</button>
+        <button class="btn btn-primary" id="apiKeySaveBtn">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="yt-hidden" style="position:fixed;top:-9999px;left:-9999px;width:2px;height:2px;overflow:hidden;"></div>
 
   <button class="debug-toggle" id="debugToggle" aria-label="Diagnostic">🐞</button>
   <div class="debug-panel" id="debugPanel"></div>
@@ -525,7 +544,6 @@
   let currentPlaylistId = null;
   let progressTimer = null;
   let isSeeking = false;
-  let pendingAutoplayQuery = null;
 
   const POPULAR_ARTISTS = [
     "Stromae", "Aya Nakamura", "Drake", "Taylor Swift", "Dua Lipa",
@@ -541,6 +559,17 @@
   }
   function saveStore(){
     try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); }catch(e){}
+  }
+
+  const API_KEY_STORAGE = "echo_yt_api_key";
+  function getApiKey(){
+    try{ return localStorage.getItem(API_KEY_STORAGE) || ""; }catch(e){ return ""; }
+  }
+  function setApiKey(key){
+    try{ localStorage.setItem(API_KEY_STORAGE, key); }catch(e){}
+  }
+  function clearApiKey(){
+    try{ localStorage.removeItem(API_KEY_STORAGE); }catch(e){}
   }
 
   /* ============ DOM refs ============ */
@@ -602,16 +631,41 @@
   function openSidebarMobile(){
     sidebar.classList.add("open");
     sidebarBackdrop.classList.add("open");
+    debugLog("Menu ouvert.");
   }
   function closeSidebarMobile(){
     sidebar.classList.remove("open");
     sidebarBackdrop.classList.remove("open");
+    debugLog("Menu fermé (croix ou fond cliqué).");
   }
   sidebarToggle.addEventListener("click", ()=>{
     sidebar.classList.contains("open") ? closeSidebarMobile() : openSidebarMobile();
   });
   sidebarCloseBtn.addEventListener("click", closeSidebarMobile);
   sidebarBackdrop.addEventListener("click", closeSidebarMobile);
+
+  /* ============ API key settings modal ============ */
+  const settingsBtn = document.getElementById("settingsBtn");
+  const apiKeyModalOverlay = document.getElementById("apiKeyModalOverlay");
+  const apiKeyInput = document.getElementById("apiKeyInput");
+  const apiKeySaveBtn = document.getElementById("apiKeySaveBtn");
+  const apiKeyClearBtn = document.getElementById("apiKeyClearBtn");
+
+  settingsBtn.addEventListener("click", ()=>{
+    apiKeyInput.value = getApiKey();
+    apiKeyModalOverlay.classList.add("open");
+  });
+  apiKeyModalOverlay.addEventListener("click", (e)=>{ if(e.target===apiKeyModalOverlay) apiKeyModalOverlay.classList.remove("open"); });
+  apiKeySaveBtn.addEventListener("click", ()=>{
+    const key = apiKeyInput.value.trim();
+    if(key){ setApiKey(key); debugLog("Clé API enregistrée."); }
+    apiKeyModalOverlay.classList.remove("open");
+  });
+  apiKeyClearBtn.addEventListener("click", ()=>{
+    clearApiKey();
+    apiKeyInput.value = "";
+    debugLog("Clé API effacée.");
+  });
 
   /* ============ Playlists sidebar render ============ */
   function renderPlaylistsSidebar(){
@@ -715,7 +769,7 @@
     const liked = isLiked(track.id);
     row.innerHTML = `
       <div class="track-idx">${index+1}</div>
-      <img class="track-thumb" src="${track.thumb}" alt="" loading="lazy">
+      <img class="track-thumb" src="${escapeHtml(track.thumb)}" alt="" loading="lazy">
       <div class="track-meta">
         <div class="track-name">${escapeHtml(track.title)}</div>
         <div class="track-artist">${escapeHtml(track.artist)}</div>
@@ -772,62 +826,54 @@
     currentPlaylistId = null;
     renderPlaylistsSidebar();
 
+    const apiKey = getApiKey();
+    if(!apiKey){
+      contentEl.innerHTML = `<div class="section-title">Résultats pour « ${escapeHtml(query)} »</div>` + emptyStateHtml(
+        "Clé API YouTube requise",
+        "Clique sur l'icône ⚙️ en haut pour ajouter une clé API YouTube gratuite (nécessaire pour chercher des titres)."
+      );
+      return;
+    }
+
     contentEl.innerHTML = `<div class="section-title">Résultats pour « ${escapeHtml(query)} »</div><div class="spinner"></div>`;
-
-    if(!playerReady){
-      debugLog("Lecteur pas encore prêt, recherche mise en attente.");
-      pendingAutoplayQuery = query;
-      return;
-    }
-    doYouTubeSearch(query);
+    doYouTubeSearch(query, apiKey);
   }
 
-  function doYouTubeSearch(query){
+  async function doYouTubeSearch(query, apiKey){
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=16&type=video&q=${encodeURIComponent(query)}&key=${encodeURIComponent(apiKey)}`;
     try{
-      player.loadPlaylist({ listType: "search", list: query, maxResults: 16 });
-      debugLog("loadPlaylist appelé pour: " + query);
-    }catch(err){
-      debugLog("Erreur loadPlaylist: " + err.message, true);
-      showSearchError();
-      return;
-    }
-    pollForSearchResults(query, 0);
-  }
-
-  function pollForSearchResults(query, attempt){
-    const maxAttempts = 10; // ~5s total
-    let ids = [];
-    try{ ids = player.getPlaylist() || []; }catch(e){ debugLog("Erreur getPlaylist: " + e.message, true); }
-    debugLog(`Tentative ${attempt+1}/${maxAttempts+1}: ${ids.length} id(s) trouvé(s).`);
-
-    if(!ids.length){
-      if(attempt < maxAttempts){
-        setTimeout(()=> pollForSearchResults(query, attempt+1), 500);
-      } else {
-        debugLog("⚠️ Aucun résultat après " + (maxAttempts+1) + " tentatives — l'astuce de recherche YouTube (listType:search) a échoué côté YouTube.", true);
-        showSearchError();
+      const res = await fetch(url);
+      const data = await res.json();
+      if(!res.ok){
+        const msg = (data && data.error && data.error.message) ? data.error.message : ("HTTP " + res.status);
+        debugLog("Erreur API YouTube: " + msg, true);
+        showSearchError(msg);
+        return;
       }
-      return;
+      const items = data.items || [];
+      debugLog(`API YouTube: ${items.length} résultat(s) pour "${query}".`);
+      if(!items.length){ showSearchError("Aucun résultat pour cette recherche."); return; }
+
+      const tracks = items.filter(it => it.id && it.id.videoId).map(it => ({
+        id: it.id.videoId,
+        title: it.snippet.title,
+        artist: it.snippet.channelTitle,
+        thumb: (it.snippet.thumbnails.medium || it.snippet.thumbnails.default).url
+      }));
+
+      queue = tracks;
+      queueIndex = -1;
+      renderSearchGrid(query, tracks);
+    }catch(err){
+      debugLog("Erreur réseau recherche: " + err.message, true);
+      showSearchError("Problème réseau pendant la recherche.");
     }
-
-    (async ()=>{
-      const tracks = await Promise.all(ids.map(id=>fetchOembed(id)));
-      const validTracks = tracks.filter(Boolean);
-      if(!validTracks.length){ showSearchError(); return; }
-
-      queue = validTracks;
-      queueIndex = 0;
-      renderSearchGrid(query, validTracks);
-      // player already started via loadPlaylist; sync UI to the currently playing item
-      syncNowPlayingMeta(validTracks[0]);
-      enablePlayerControls();
-    })();
   }
 
-  function showSearchError(){
+  function showSearchError(detail){
     contentEl.innerHTML = `<div class="section-title">Recherche</div>` + emptyStateHtml(
       "Aucun résultat trouvé",
-      "Essaie un autre nom d'artiste ou de titre, ou relance la recherche."
+      detail || "Essaie un autre nom d'artiste ou de titre."
     );
   }
 
@@ -845,7 +891,7 @@
     const card = document.createElement("div");
     card.className = "card" + (isCurrentTrack(track) ? " playing" : "");
     card.innerHTML = `
-      <img class="card-thumb" src="${track.thumb}" alt="" loading="lazy">
+      <img class="card-thumb" src="${escapeHtml(track.thumb)}" alt="" loading="lazy">
       <div class="card-playbadge">
         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
       </div>
@@ -854,27 +900,6 @@
     `;
     card.addEventListener("click", ()=> playFromList(listRef, index));
     return card;
-  }
-
-  async function fetchOembed(videoId){
-    try{
-      const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-      if(!res.ok) throw new Error("oembed failed");
-      const data = await res.json();
-      return {
-        id: videoId,
-        title: data.title || "Titre inconnu",
-        artist: data.author_name || "Artiste inconnu",
-        thumb: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
-      };
-    }catch(e){
-      return {
-        id: videoId,
-        title: "Titre indisponible",
-        artist: "",
-        thumb: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
-      };
-    }
   }
 
   /* ============ Playback ============ */
@@ -948,6 +973,8 @@
   });
 
   nextBtn.addEventListener("click", playNextTrack);
+
+  let consecutiveErrors = 0;
 
   function playNextTrack(){
     if(queue.length===0) return;
@@ -1071,7 +1098,7 @@
   /* ============ YouTube IFrame API ============ */
   window.onYouTubeIframeAPIReady = function(){
     player = new YT.Player("yt-hidden", {
-      height: "0", width: "0",
+      height: "2", width: "2",
       playerVars: { autoplay: 1, controls: 0, disablekb: 1, playsinline: 1, origin: window.location.origin },
       events: {
         onReady: function(){
@@ -1080,14 +1107,10 @@
           player.setVolume(70);
           volumeFill.style.width = "70%";
           startProgressLoop();
-          if(pendingAutoplayQuery){
-            const q = pendingAutoplayQuery;
-            pendingAutoplayQuery = null;
-            doYouTubeSearch(q);
-          }
         },
         onStateChange: function(e){
           if(e.data === YT.PlayerState.PLAYING){
+            consecutiveErrors = 0;
             playIcon.setAttribute("d","M6 5h4v14H6zM14 5h4v14h-4z");
             npThumb.classList.add("spin");
           } else {
@@ -1100,6 +1123,14 @@
         },
         onError: function(e){
           debugLog("Erreur lecteur YouTube (code " + (e && e.data) + ")", true);
+          consecutiveErrors++;
+          if(consecutiveErrors >= Math.min(queue.length, 5) && queue.length > 0){
+            debugLog("Trop d'erreurs à la suite, lecture arrêtée.", true);
+            npTitle.textContent = "Lecture impossible";
+            npArtist.textContent = "Ces titres ne peuvent pas être lus, essaie une autre recherche.";
+            consecutiveErrors = 0;
+            return;
+          }
           playNextTrack();
         }
       }
