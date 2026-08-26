@@ -229,9 +229,10 @@
     <h2>CE QU'ÉCHO SAIT FAIRE</h2>
     <div class="group"><h3>DISCUTER</h3><p>Salutations, comment ça va, ton nom, remerciements, au revoir.</p></div>
     <div class="group"><h3>INFOS</h3><p>Heure actuelle, date du jour.</p></div>
+    <div class="group"><h3>RECHERCHE INTERNET</h3><p>Pose une question ("qui est...", "c'est quoi...", ou toute phrase finissant par un point d'interrogation) et Écho va chercher un résumé sur Wikipédia et te le lit à voix haute.</p></div>
     <div class="group"><h3>DIVERTISSEMENT</h3><p>Demande-lui une blague, ou de lancer une pièce/un dé.</p></div>
-    <div class="group"><h3>OUVRIR UN SITE</h3><p>"ouvre youtube", "ouvre google", "ouvre spotify", "cherche [un truc]"...</p></div>
-    <div class="group"><h3>À NOTER</h3><p>Écho fonctionne 100% en local, sans API ni connexion — toutes les réponses sont codées dans l'app. Il ne comprend que ce qui est prévu ci-dessus, pas de conversation libre.</p></div>
+    <div class="group"><h3>OUVRIR UN SITE</h3><p>"ouvre youtube", "ouvre google", "ouvre spotify"...</p></div>
+    <div class="group"><h3>À NOTER</h3><p>Les réponses de discussion sont codées en dur (pas d'IA), mais la recherche interroge vraiment Wikipédia en direct — il faut une connexion internet pour ça.</p></div>
     <button class="close-btn" id="closeBtn">Fermer</button>
   </div>
 </div>
@@ -360,9 +361,39 @@
 
   function tryOpenSearch(text){
     const t = norm(text);
-    const m = t.match(/^cherche (.+)/) || t.match(/^recherche (.+)/);
-    if(!m) return null;
-    return m[1];
+    let m = t.match(/^cherche (.+)/) || t.match(/^recherche (.+)/)
+      || t.match(/^qu est ce que (.+)/) || t.match(/^qu est ce qu (.+)/)
+      || t.match(/^c est quoi (.+)/) || t.match(/^qui est (.+)/) || t.match(/^qui etait (.+)/)
+      || t.match(/^c est qui (.+)/);
+    if(m) return m[1].replace(/\?$/,'').trim();
+
+    // question générique (pourquoi/comment/quand/où...) ou phrase qui finit par "?"
+    if(/^(pourquoi|comment|quand|ou est|combien)\b/.test(t) || /\?\s*$/.test(text)){
+      return t.replace(/\?$/,'').trim();
+    }
+    return null;
+  }
+
+  async function searchInternet(query){
+    // 1) on cherche le titre le plus proche sur Wikipédia (FR)
+    const openSearchUrl = 'https://fr.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&limit=1&namespace=0&search=' + encodeURIComponent(query);
+    const osRes = await fetch(openSearchUrl);
+    if(!osRes.ok) throw new Error('recherche indisponible');
+    const osData = await osRes.json();
+    const title = osData[1] && osData[1][0];
+    if(!title) return null;
+
+    // 2) on récupère le résumé de la page trouvée
+    const summaryUrl = 'https://fr.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title);
+    const sumRes = await fetch(summaryUrl);
+    if(!sumRes.ok) throw new Error('résumé indisponible');
+    const sumData = await sumRes.json();
+    if(!sumData.extract) return null;
+
+    let extract = sumData.extract;
+    // on garde ça digeste à l'oral : 2 phrases max
+    const sentences = extract.split(/(?<=[.!?])\s+/).slice(0, 2);
+    return { title: sumData.title, text: sentences.join(' ') };
   }
 
   function respond(userText){
@@ -375,37 +406,51 @@
       return "J'ouvre " + site.name + ".";
     }
 
-    const query = tryOpenSearch(userText);
-    if(query){
-      window.open('https://www.google.com/search?q=' + encodeURIComponent(query), '_blank');
-      return "Je cherche \u00ab " + query + " \u00bb.";
-    }
-
     const t = norm(userText);
     for(const rule of RULES){
       if(rule.test.test(t)){
         return rule.respond();
       }
     }
-    return pick([
-      "Je n'ai pas cette réponse en stock. Touche la roue crantée pour voir ce que je sais faire.",
-      "Commande non reconnue dans ma base locale. Regarde le menu d'aide en haut à droite.",
-      "Je ne connais pas encore ça. Tu peux me demander l'heure, une blague, ou d'ouvrir un site."
-    ]);
+    return null; // pas de règle locale -> on tentera une recherche internet
   }
 
-  function ask(userText){
+  async function ask(userText){
     if(busy) return;
     busy = true;
     addLine('user', userText);
     setState('thinking', 'JE RÉFLÉCHIS');
 
-    setTimeout(()=>{
-      const reply = respond(userText);
-      addLine('assistant', reply);
-      speak(reply);
-      busy = false;
-    }, 350);
+    // 1) réponses locales (règles, sites...)
+    const local = respond(userText);
+    if(local !== null){
+      setTimeout(()=>{
+        addLine('assistant', local);
+        speak(local);
+        busy = false;
+      }, 300);
+      return;
+    }
+
+    // 2) sinon, recherche internet
+    const query = tryOpenSearch(userText) || userText;
+    setState('thinking', 'JE CHERCHE SUR INTERNET');
+    try{
+      const result = await searchInternet(query);
+      if(result){
+        const reply = result.text;
+        addLine('assistant', reply + '  (source : Wikipédia — ' + result.title + ')');
+        speak(reply);
+      }else{
+        const reply = "Je n'ai rien trouvé de fiable sur Wikipédia. Je t'ouvre une recherche Google à la place.";
+        window.open('https://www.google.com/search?q=' + encodeURIComponent(query), '_blank');
+        addLine('assistant', reply);
+        speak(reply);
+      }
+    }catch(err){
+      errorLine('recherche impossible : ' + err.message);
+    }
+    busy = false;
   }
 
   function submitText(){
@@ -452,7 +497,7 @@
       errorLine('reconnaissance vocale indisponible. utilise le clavier. (ouvre cette page dans Safari directement, pas via l\u2019écran d\u2019accueil.)'));
   }
 
-  addLine('system', 'dis bonjour, ou touche la roue crantée pour voir ce qu\u2019Écho sait faire.');
+  addLine('system', 'dis bonjour, pose une question, ou touche la roue crantée pour voir ce qu\u2019Écho sait faire.');
 })();
 </script>
 </body>
