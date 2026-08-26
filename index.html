@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>J.A.R.V.I.S</title>
+<title>É.C.H.O</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap');
 
@@ -41,7 +41,6 @@
       var(--void);
   }
 
-  /* subtle scanline texture */
   body::before{
     content:"";
     position:fixed; inset:0;
@@ -50,7 +49,6 @@
     z-index:1;
   }
 
-  /* ---------- HEADER ---------- */
   header{
     flex:0 0 auto;
     display:flex;
@@ -87,7 +85,6 @@
   }
   .gear svg{width:16px;height:16px;}
 
-  /* ---------- CORE / ORB ---------- */
   .core-zone{
     flex:0 0 auto;
     display:flex;
@@ -97,84 +94,49 @@
     padding:22px 0 10px 0;
     z-index:2;
   }
-  .orb-wrap{
-    position:relative;
-    width:150px; height:150px;
-  }
-  .ring{
-    position:absolute; inset:0;
-    border-radius:50%;
-    border:1px solid var(--border);
-  }
+  .orb-wrap{ position:relative; width:150px; height:150px; }
+  .ring{ position:absolute; inset:0; border-radius:50%; border:1px solid var(--border); }
   .ring.r2{ inset:14px; border-color:var(--cyan-dim); }
   .ring.r3{
-    inset:0;
-    border:2px solid transparent;
-    border-top-color:var(--cyan-soft);
-    border-right-color:var(--cyan-soft);
+    inset:0; border:2px solid transparent;
+    border-top-color:var(--cyan-soft); border-right-color:var(--cyan-soft);
     animation:spin 6s linear infinite;
   }
   .ring.r4{
-    inset:26px;
-    border:1px dashed var(--cyan-dim);
+    inset:26px; border:1px dashed var(--cyan-dim);
     animation:spin 14s linear infinite reverse;
   }
   .core{
-    position:absolute; inset:38px;
-    border-radius:50%;
+    position:absolute; inset:38px; border-radius:50%;
     background:radial-gradient(circle at 35% 30%, #B9FFF7, var(--cyan) 40%, var(--cyan-soft) 75%, #0a2f2d 100%);
     box-shadow:0 0 30px 4px rgba(77,232,220,0.45), inset 0 0 20px rgba(0,0,0,0.35);
     transition:box-shadow .3s ease, transform .3s ease;
   }
-  .tick{
-    position:absolute; left:50%; top:0;
-    width:1px; height:8px;
-    background:var(--cyan-dim);
-    transform-origin:50% 75px;
-  }
 
   @keyframes spin{ to{ transform:rotate(360deg); } }
-  @keyframes breathe{
-    0%,100%{ transform:scale(1); }
-    50%{ transform:scale(1.045); }
-  }
+  @keyframes breathe{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.045); } }
   @keyframes pulseFast{
     0%,100%{ transform:scale(1); box-shadow:0 0 30px 6px rgba(77,232,220,0.55), inset 0 0 20px rgba(0,0,0,0.35); }
     50%{ transform:scale(1.12); box-shadow:0 0 46px 14px rgba(77,232,220,0.8), inset 0 0 20px rgba(0,0,0,0.3); }
   }
-  @keyframes thinkFlicker{
-    0%,100%{ opacity:1; }
-    45%{ opacity:.55; }
-    55%{ opacity:1; }
-  }
+  @keyframes thinkFlicker{ 0%,100%{ opacity:1; } 45%{ opacity:.55; } 55%{ opacity:1; } }
 
   .orb-wrap[data-state="idle"] .core{ animation:breathe 3.6s ease-in-out infinite; }
   .orb-wrap[data-state="listening"] .core{ animation:pulseFast 0.9s ease-in-out infinite; background:radial-gradient(circle at 35% 30%, #fff, var(--cyan) 40%, var(--cyan-soft) 75%, #0a2f2d 100%);}
   .orb-wrap[data-state="thinking"] .ring.r3{ animation:spin 1.1s linear infinite; }
-  .orb-wrap[data-state="thinking"] .core{ animation:thinkFlicker 1s ease-in-out infinite; }
+  .orb-wrap[data-state="thinking"] .core{ animation:thinkFlicker .5s ease-in-out infinite; }
   .orb-wrap[data-state="speaking"] .core{ animation:pulseFast 0.5s ease-in-out infinite; }
 
   .status-label{
-    margin-top:16px;
-    font-family:'Orbitron', sans-serif;
-    font-size:11px;
-    letter-spacing:4px;
-    color:var(--cyan);
-    min-height:14px;
+    margin-top:16px; font-family:'Orbitron', sans-serif; font-size:11px;
+    letter-spacing:4px; color:var(--cyan); min-height:14px;
   }
   .status-label.err{ color:var(--red); }
 
-  /* ---------- LOG ---------- */
   .log-frame{
-    flex:1 1 auto;
-    margin:6px 14px;
-    border:1px solid var(--border);
-    border-radius:6px;
+    flex:1 1 auto; margin:6px 14px; border:1px solid var(--border); border-radius:6px;
     background:linear-gradient(180deg, var(--panel), var(--panel-2));
-    position:relative;
-    overflow:hidden;
-    z-index:2;
-    min-height:0;
+    position:relative; overflow:hidden; z-index:2; min-height:0;
   }
   .corner{ position:absolute; width:10px; height:10px; border-color:var(--cyan-soft); }
   .corner.tl{ top:-1px; left:-1px; border-top:2px solid; border-left:2px solid; }
@@ -182,14 +144,7 @@
   .corner.bl{ bottom:-1px; left:-1px; border-bottom:2px solid; border-left:2px solid; }
   .corner.br{ bottom:-1px; right:-1px; border-bottom:2px solid; border-right:2px solid; }
 
-  .log{
-    height:100%;
-    overflow-y:auto;
-    padding:14px 14px 14px 14px;
-    font-size:13px;
-    line-height:1.55;
-    -webkit-overflow-scrolling:touch;
-  }
+  .log{ height:100%; overflow-y:auto; padding:14px; font-size:13px; line-height:1.55; -webkit-overflow-scrolling:touch; }
   .line{ margin-bottom:10px; white-space:pre-wrap; word-break:break-word; }
   .line .tag{ color:var(--text-dim); font-size:10px; letter-spacing:1px; display:block; margin-bottom:2px;}
   .line.user .tag{ color:var(--cyan-soft); }
@@ -198,116 +153,46 @@
   .line.assistant .txt{ color:var(--text); }
   .line.system .txt{ color:var(--text-dim); font-style:italic; }
 
-  /* ---------- INPUT BAR ---------- */
   .input-bar{
-    flex:0 0 auto;
-    display:flex;
-    align-items:center;
-    gap:8px;
-    padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 14px) 14px;
-    z-index:2;
+    flex:0 0 auto; display:flex; align-items:center; gap:8px;
+    padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 14px) 14px; z-index:2;
   }
   .text-input{
-    flex:1;
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:6px;
-    padding:12px 12px;
-    color:var(--text);
-    font-family:'Share Tech Mono', monospace;
-    font-size:14px;
-    outline:none;
+    flex:1; background:var(--panel); border:1px solid var(--border); border-radius:6px;
+    padding:12px; color:var(--text); font-family:'Share Tech Mono', monospace; font-size:14px; outline:none;
   }
   .text-input:focus{ border-color:var(--cyan-soft); }
   .btn{
-    flex:0 0 auto;
-    width:46px; height:46px;
-    border-radius:6px;
-    border:1px solid var(--border);
-    background:var(--panel);
-    color:var(--cyan);
-    display:flex; align-items:center; justify-content:center;
+    flex:0 0 auto; width:46px; height:46px; border-radius:6px; border:1px solid var(--border);
+    background:var(--panel); color:var(--cyan); display:flex; align-items:center; justify-content:center;
   }
   .btn svg{ width:20px; height:20px; }
-  .btn.mic.on{
-    background:var(--cyan);
-    color:var(--void);
-    box-shadow:0 0 16px rgba(77,232,220,0.6);
-  }
+  .btn.mic.on{ background:var(--cyan); color:var(--void); box-shadow:0 0 16px rgba(77,232,220,0.6); }
   .btn:active{ opacity:0.7; }
 
-  /* ---------- SETTINGS PANEL ---------- */
   .overlay{
-    position:fixed; inset:0;
-    background:rgba(2,5,6,0.85);
-    backdrop-filter:blur(4px);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:10;
-    padding:20px;
+    position:fixed; inset:0; background:rgba(2,5,6,0.85); backdrop-filter:blur(4px);
+    display:none; align-items:center; justify-content:center; z-index:10; padding:20px;
   }
   .overlay.show{ display:flex; }
-  .panel{
-    width:100%; max-width:360px;
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:20px;
+  .panel{ width:100%; max-width:360px; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px; max-height:80vh; overflow-y:auto; }
+  .panel h2{ font-family:'Orbitron', sans-serif; font-size:13px; letter-spacing:3px; color:var(--cyan); margin:0 0 14px 0; }
+  .panel .group{ margin-bottom:14px; }
+  .panel .group h3{ font-size:10px; letter-spacing:2px; color:var(--amber); margin:0 0 6px 0; }
+  .panel .group p{ font-size:12px; color:var(--text-dim); line-height:1.6; margin:0; }
+  .close-btn{
+    width:100%; padding:11px; border-radius:6px; border:1px solid var(--border);
+    font-family:'Share Tech Mono', monospace; font-size:12px; letter-spacing:1px;
+    background:transparent; color:var(--text-dim); margin-top:6px;
   }
-  .panel h2{
-    font-family:'Orbitron', sans-serif;
-    font-size:13px;
-    letter-spacing:3px;
-    color:var(--cyan);
-    margin:0 0 14px 0;
-  }
-  .panel label{
-    display:block;
-    font-size:11px;
-    color:var(--text-dim);
-    letter-spacing:1px;
-    margin-bottom:6px;
-  }
-  .panel input[type="password"], .panel input[type="text"]{
-    width:100%;
-    background:var(--void);
-    border:1px solid var(--border);
-    border-radius:6px;
-    padding:10px;
-    color:var(--text);
-    font-family:'Share Tech Mono', monospace;
-    font-size:13px;
-    margin-bottom:14px;
-    outline:none;
-  }
-  .panel .hint{
-    font-size:11px;
-    color:var(--text-dim);
-    line-height:1.5;
-    margin-bottom:16px;
-  }
-  .panel .hint a{ color:var(--cyan-soft); }
-  .panel-buttons{ display:flex; gap:10px; }
-  .panel-buttons button{
-    flex:1;
-    padding:11px;
-    border-radius:6px;
-    border:1px solid var(--border);
-    font-family:'Share Tech Mono', monospace;
-    font-size:12px;
-    letter-spacing:1px;
-  }
-  .save-btn{ background:var(--cyan); color:var(--void); border:none; font-weight:bold;}
-  .close-btn{ background:transparent; color:var(--text-dim); }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="brand">J.A.R.V.I.S<small>SYSTEME VOCAL &mdash; STANDBY</small></div>
+  <div class="brand">É.C.H.O<small>MOTEUR DE RÉPONSES LOCAL</small></div>
   <div class="gear" id="settingsBtn">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09A1.65 1.65 0 0015.4 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.14.31.4.55.71.7.31.16.5.4.5.7v1.2c0 .3-.19.54-.5.7-.31.15-.57.39-.71.7z"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><circle cx="12" cy="8" r="0.5" fill="currentColor"/></svg>
   </div>
 </header>
 
@@ -339,21 +224,15 @@
   </button>
 </div>
 
-<!-- SETTINGS OVERLAY -->
 <div class="overlay" id="overlay">
   <div class="panel">
-    <h2>CONFIGURATION</h2>
-    <label for="apiKeyInput">Clé API Anthropic</label>
-    <input type="password" id="apiKeyInput" placeholder="sk-ant-...">
-    <div class="hint">
-      Récupère ta clé sur <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.
-      Elle reste stockée uniquement sur cet appareil (localStorage), jamais envoyée ailleurs qu'à l'API Anthropic.
-      Ne partage jamais ce fichier avec ta clé déjà remplie.
-    </div>
-    <div class="panel-buttons">
-      <button class="close-btn" id="closeBtn">Fermer</button>
-      <button class="save-btn" id="saveBtn">Enregistrer</button>
-    </div>
+    <h2>CE QU'ÉCHO SAIT FAIRE</h2>
+    <div class="group"><h3>DISCUTER</h3><p>Salutations, comment ça va, ton nom, remerciements, au revoir.</p></div>
+    <div class="group"><h3>INFOS</h3><p>Heure actuelle, date du jour.</p></div>
+    <div class="group"><h3>DIVERTISSEMENT</h3><p>Demande-lui une blague, ou de lancer une pièce/un dé.</p></div>
+    <div class="group"><h3>OUVRIR UN SITE</h3><p>"ouvre youtube", "ouvre google", "ouvre spotify", "cherche [un truc]"...</p></div>
+    <div class="group"><h3>À NOTER</h3><p>Écho fonctionne 100% en local, sans API ni connexion — toutes les réponses sont codées dans l'app. Il ne comprend que ce qui est prévu ci-dessus, pas de conversation libre.</p></div>
+    <button class="close-btn" id="closeBtn">Fermer</button>
   </div>
 </div>
 
@@ -367,19 +246,9 @@
   const micBtn = document.getElementById('micBtn');
   const settingsBtn = document.getElementById('settingsBtn');
   const overlay = document.getElementById('overlay');
-  const apiKeyInput = document.getElementById('apiKeyInput');
-  const saveBtn = document.getElementById('saveBtn');
   const closeBtn = document.getElementById('closeBtn');
 
-  let apiKey = localStorage.getItem('jarvis_api_key') || '';
-  let history = [];
   let busy = false;
-
-  const SYSTEM_PROMPT = `Tu es J.A.R.V.I.S, un assistant vocal personnel inspiré d'Iron Man.
-Tu es concis, direct, un peu spirituel mais toujours efficace.
-Tes réponses sont lues à voix haute : pas de markdown, pas de listes à puces, pas d'astérisques.
-Réponds en français, en 1 à 4 phrases sauf si on te demande plus de détails.
-Tu t'adresses à l'utilisateur avec respect, un peu comme un majordome futuriste.`;
 
   function setState(state, label){
     orb.setAttribute('data-state', state);
@@ -390,7 +259,7 @@ Tu t'adresses à l'utilisateur avec respect, un peu comme un majordome futuriste
   function addLine(role, text){
     const div = document.createElement('div');
     div.className = 'line ' + role;
-    const tagText = role === 'user' ? 'TOI' : role === 'assistant' ? 'JARVIS' : 'SYSTEME';
+    const tagText = role === 'user' ? 'TOI' : role === 'assistant' ? 'ÉCHO' : 'SYSTEME';
     div.innerHTML = '<span class="tag">' + tagText + '</span><span class="txt"></span>';
     div.querySelector('.txt').textContent = text;
     log.appendChild(div);
@@ -401,30 +270,14 @@ Tu t'adresses à l'utilisateur avec respect, un peu comme un majordome futuriste
     addLine('system', text);
     setState('idle', 'ERREUR');
     statusLabel.classList.add('err');
-    setTimeout(()=> setState('idle','EN VEILLE'), 2500);
+    setTimeout(()=> setState('idle','EN VEILLE'), 2200);
   }
 
-  // ---------- Settings ----------
-  function openSettings(){
-    apiKeyInput.value = apiKey;
-    overlay.classList.add('show');
-  }
-  settingsBtn.addEventListener('click', openSettings);
+  settingsBtn.addEventListener('click', ()=> overlay.classList.add('show'));
   closeBtn.addEventListener('click', ()=> overlay.classList.remove('show'));
-  saveBtn.addEventListener('click', ()=>{
-    apiKey = apiKeyInput.value.trim();
-    localStorage.setItem('jarvis_api_key', apiKey);
-    overlay.classList.remove('show');
-    addLine('system', apiKey ? 'clé API enregistrée.' : 'clé API effacée.');
-  });
 
-  if(!apiKey){
-    setTimeout(openSettings, 400);
-  }
-
-  // ---------- Text-to-Speech ----------
   function speak(text){
-    if(!('speechSynthesis' in window)){ return; }
+    if(!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = 'fr-FR';
@@ -434,54 +287,127 @@ Tu t'adresses à l'utilisateur avec respect, un peu comme un majordome futuriste
     window.speechSynthesis.speak(utter);
   }
 
-  // ---------- Brain (Claude) ----------
-  async function ask(userText){
-    if(!apiKey){
-      errorLine('aucune clé API configurée. touche la roue crantée en haut à droite.');
-      openSettings();
-      return;
+  function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
+  function norm(s){
+    return s.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9 ]/g,' ')
+      .replace(/\s+/g,' ').trim();
+  }
+
+  const JOKES = [
+    "Pourquoi les plongeurs plongent-ils toujours en arrière et jamais en avant ? Parce que sinon ils tombent dans le bateau.",
+    "Qu'est-ce qui est jaune et qui attend ? Jonathan.",
+    "Un octet va voir le médecin. Le médecin lui dit : vous avez l'air un peu bit.",
+    "Pourquoi les développeurs confondent Halloween et Noël ? Parce que OCT 31 égale DEC 25.",
+    "J'ai voulu faire une blague sur le wifi, mais elle n'a pas de connexion.",
+    "Deux antennes se marient. La cérémonie n'était pas terrible, mais la réception était excellente."
+  ];
+
+  const SITES = {
+    'youtube': 'https://youtube.com',
+    'google': 'https://google.com',
+    'spotify': 'https://open.spotify.com',
+    'instagram': 'https://instagram.com',
+    'tiktok': 'https://tiktok.com',
+    'twitter': 'https://x.com',
+    'x': 'https://x.com',
+    'gmail': 'https://mail.google.com',
+    'maps': 'https://maps.google.com',
+    'netflix': 'https://netflix.com',
+    'amazon': 'https://amazon.fr',
+    'wikipedia': 'https://fr.wikipedia.org'
+  };
+
+  // ---------- Moteur de règles ----------
+  const RULES = [
+    { test:/^(bonjour|salut|coucou|hello|yo|hey)\b/, respond: ()=> pick([
+        "Bonjour. Écho à l'écoute.", "Salut. Qu'est-ce que je peux faire pour toi ?", "Présent. Je t'écoute."
+      ])},
+    { test:/(comment tu vas|ca va|tu vas bien)/, respond: ()=> pick([
+        "Tous les systèmes sont au vert, merci de demander.", "Impeccable. Et toi ?"
+      ])},
+    { test:/(qui es tu|ton nom|tu t appelles|comment tu t appelles)/, respond: ()=>
+        "Je suis Écho, ton assistant local. Pas de connexion, pas de cloud, juste des réponses codées en dur." },
+    { test:/(merci)/, respond: ()=> pick(["Avec plaisir.", "C'est normal.", "À ton service."]) },
+    { test:/(au revoir|a plus|bye|salut a toi|eteins toi)/, respond: ()=> pick(["À plus tard.", "Je reste en veille, appelle-moi quand tu veux."]) },
+    { test:/(quelle heure|l heure)/, respond: ()=> {
+        const h = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+        return "Il est " + h + ".";
+      }},
+    { test:/(quel jour|la date|on est quel)/, respond: ()=> {
+        const d = new Date().toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long'});
+        return "Nous sommes le " + d + ".";
+      }},
+    { test:/(blague|drole|fais moi rire)/, respond: ()=> pick(JOKES) },
+    { test:/(pile ou face)/, respond: ()=> pick(["Pile.", "Face."]) },
+    { test:/(lance un de|lance le de|un de|un chiffre entre 1 et 6)/, respond: ()=>
+        "Le dé tombe sur " + (Math.floor(Math.random()*6)+1) + "." },
+    { test:/(qui a cree toi|qui t a cree|ton createur)/, respond: ()=>
+        "On m'a codé sur mesure, entièrement en local, sans intelligence artificielle branchée." },
+  ];
+
+  function tryOpenSite(text){
+    const t = norm(text);
+    if(!/^(ouvre|lance|va sur|demarre)\b/.test(t)) return null;
+    for(const key in SITES){
+      if(t.includes(key)){
+        return { url: SITES[key], name: key };
+      }
     }
+    return { unknown:true };
+  }
+
+  function tryOpenSearch(text){
+    const t = norm(text);
+    const m = t.match(/^cherche (.+)/) || t.match(/^recherche (.+)/);
+    if(!m) return null;
+    return m[1];
+  }
+
+  function respond(userText){
+    const site = tryOpenSite(userText);
+    if(site){
+      if(site.unknown){
+        return "Je ne connais que quelques sites : " + Object.keys(SITES).join(', ') + ".";
+      }
+      window.open(site.url, '_blank');
+      return "J'ouvre " + site.name + ".";
+    }
+
+    const query = tryOpenSearch(userText);
+    if(query){
+      window.open('https://www.google.com/search?q=' + encodeURIComponent(query), '_blank');
+      return "Je cherche \u00ab " + query + " \u00bb.";
+    }
+
+    const t = norm(userText);
+    for(const rule of RULES){
+      if(rule.test.test(t)){
+        return rule.respond();
+      }
+    }
+    return pick([
+      "Je n'ai pas cette réponse en stock. Touche la roue crantée pour voir ce que je sais faire.",
+      "Commande non reconnue dans ma base locale. Regarde le menu d'aide en haut à droite.",
+      "Je ne connais pas encore ça. Tu peux me demander l'heure, une blague, ou d'ouvrir un site."
+    ]);
+  }
+
+  function ask(userText){
     if(busy) return;
     busy = true;
     addLine('user', userText);
-    history.push({role:'user', content:userText});
     setState('thinking', 'JE RÉFLÉCHIS');
 
-    try{
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version':'2023-06-01',
-          'anthropic-dangerous-direct-browser-access':'true'
-        },
-        body: JSON.stringify({
-          model:'claude-sonnet-4-6',
-          max_tokens:400,
-          system: SYSTEM_PROMPT,
-          messages: history.slice(-20)
-        })
-      });
-
-      if(!res.ok){
-        const errBody = await res.text();
-        throw new Error('API ' + res.status + ' : ' + errBody.slice(0,180));
-      }
-
-      const data = await res.json();
-      const reply = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
-      history.push({role:'assistant', content: reply});
+    setTimeout(()=>{
+      const reply = respond(userText);
       addLine('assistant', reply);
       speak(reply);
-    }catch(err){
-      errorLine('échec de connexion : ' + err.message);
-    }finally{
       busy = false;
-    }
+    }, 350);
   }
 
-  // ---------- Text input ----------
   function submitText(){
     const val = textInput.value.trim();
     if(!val) return;
@@ -489,11 +415,8 @@ Tu t'adresses à l'utilisateur avec respect, un peu comme un majordome futuriste
     ask(val);
   }
   sendBtn.addEventListener('click', submitText);
-  textInput.addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter') submitText();
-  });
+  textInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') submitText(); });
 
-  // ---------- Speech recognition (push-to-talk) ----------
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognizer = null;
   let listening = false;
@@ -509,19 +432,13 @@ Tu t'adresses à l'utilisateur avec respect, un peu comme un majordome futuriste
       micBtn.classList.add('on');
       setState('listening', 'JE T\u2019ÉCOUTE');
     };
-    recognizer.onresult = (e)=>{
-      const transcript = e.results[0][0].transcript;
-      ask(transcript);
-    };
-    recognizer.onerror = (e)=>{
-      errorLine('micro indisponible (' + e.error + '). utilise le clavier, ou ouvre cette page directement dans Safari (pas en app ajoutée à l\u2019écran d\u2019accueil).');
-    };
+    recognizer.onresult = (e)=> ask(e.results[0][0].transcript);
+    recognizer.onerror = (e)=>
+      errorLine('micro indisponible (' + e.error + '). ouvre cette page directement dans Safari (pas en app ajoutée à l\u2019écran d\u2019accueil).');
     recognizer.onend = ()=>{
       listening = false;
       micBtn.classList.remove('on');
-      if(orb.getAttribute('data-state') === 'listening'){
-        setState('idle', 'EN VEILLE');
-      }
+      if(orb.getAttribute('data-state') === 'listening') setState('idle', 'EN VEILLE');
     };
 
     micBtn.addEventListener('click', ()=>{
@@ -531,12 +448,11 @@ Tu t'adresses à l'utilisateur avec respect, un peu comme un majordome futuriste
       catch(err){ errorLine('impossible de démarrer le micro : ' + err.message); }
     });
   }else{
-    micBtn.addEventListener('click', ()=>{
-      errorLine('reconnaissance vocale indisponible sur ce navigateur. utilise le clavier ci-dessous. (Sur iPhone : ouvre cette page dans Safari directement, pas via une icône ajoutée à l\u2019écran d\u2019accueil.)');
-    });
+    micBtn.addEventListener('click', ()=>
+      errorLine('reconnaissance vocale indisponible. utilise le clavier. (ouvre cette page dans Safari directement, pas via l\u2019écran d\u2019accueil.)'));
   }
 
-  addLine('system', 'dis bonjour à Jarvis, ou tape un message pour commencer.');
+  addLine('system', 'dis bonjour, ou touche la roue crantée pour voir ce qu\u2019Écho sait faire.');
 })();
 </script>
 </body>
