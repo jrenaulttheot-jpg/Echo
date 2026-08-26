@@ -2,1149 +2,541 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Écho — Musique</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>J.A.R.V.I.S</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap');
+
   :root{
-    --void: #0a0a0d;
-    --void-2: #0a0a10;
-    --glass: #17171c;
-    --glass-strong: #212127;
-    --glass-border: #2b2b32;
-    --text-1: #F5F5F7;
-    --text-2: rgba(235,235,245,0.58);
-    --text-3: rgba(235,235,245,0.36);
-    --accent-a: #0A84FF;
-    --accent-b: #BF5AF2;
-    --accent-c: #FF375F;
-    --glow-1: #0A84FF;
-    --glow-2: #BF5AF2;
-    --radius-lg: 22px;
-    --radius-md: 16px;
-    --radius-sm: 12px;
-    --ease-spring: cubic-bezier(.34,1.56,.64,1);
-    --ease-smooth: cubic-bezier(.4,0,.2,1);
+    --void:#050708;
+    --panel:#0A1014;
+    --panel-2:#0D171B;
+    --cyan:#4DE8DC;
+    --cyan-soft:#2C8B87;
+    --cyan-dim:#123333;
+    --text:#DCF7F4;
+    --text-dim:#5D8482;
+    --amber:#FFB454;
+    --red:#FF5C5C;
+    --border:#1B3A3A;
   }
 
-  *{ box-sizing:border-box; margin:0; padding:0; }
-  html,body{ height:100%; }
-  body{
-    background: var(--void);
-    color: var(--text-1);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-    overflow: hidden;
-    -webkit-font-smoothing: antialiased;
-  }
-  ::selection{ background: var(--accent-a); color:#fff; }
-  button{ font-family:inherit; border:none; background:none; color:inherit; cursor:pointer; }
-  input{ font-family:inherit; }
-  ul{ list-style:none; }
-  a{ color:inherit; }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 
-  button:focus-visible, input:focus-visible, [tabindex]:focus-visible{
-    outline: 2px solid var(--accent-a);
-    outline-offset: 2px;
-    border-radius: 8px;
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    *{ animation-duration: .001ms !important; transition-duration: .001ms !important; }
-  }
-
-  /* ---------- App shell ---------- */
-  .app{
-    position:relative; z-index:1;
-    display:grid;
-    grid-template-columns: 264px 1fr;
-    height: 100vh;
-    height: 100dvh;
-    padding: 14px 14px 118px 14px;
-    gap: 14px;
-    min-height: 0;
-  }
-
-  .glass-panel{
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    position: relative;
-  }
-
-  /* ---------- Sidebar ---------- */
-  .sidebar{
-    display:flex; flex-direction:column; padding: 22px 16px;
-    animation: rise .6s var(--ease-spring) both;
-    min-height: 0;
-  }
-  .logo{
-    font-size: 21px; font-weight: 800; letter-spacing: -0.02em;
-    background: linear-gradient(120deg, #fff, var(--glow-1) 60%, var(--glow-2));
-    -webkit-background-clip: text; background-clip:text; color:transparent;
-    margin-bottom: 26px; padding-left: 6px;
-    transition: background 1.2s var(--ease-smooth);
-  }
-  nav{ display:flex; flex-direction:column; gap:2px; margin-bottom:22px; }
-  .nav-item{
-    display:flex; align-items:center; gap:10px;
-    text-align:left; padding: 10px 12px; border-radius: var(--radius-sm);
-    font-size: 14.5px; font-weight:600; color: var(--text-2);
-    transition: all .25s var(--ease-smooth);
-  }
-  .nav-item:hover{ background: var(--glass); color: var(--text-1); }
-  .nav-item.active{ background: var(--glass-strong); color:#fff; }
-  .nav-item .ic{ font-size:16px; opacity:.9; }
-
-  .playlists-section{ flex:1; display:flex; flex-direction:column; min-height:0; }
-  .playlists-header{
-    display:flex; align-items:center; justify-content:space-between;
-    padding: 4px 12px 10px; font-size:12px; font-weight:700;
-    text-transform:uppercase; letter-spacing:.06em; color: var(--text-3);
-  }
-  #newPlaylistBtn{
-    width:22px; height:22px; border-radius:50%; background: var(--glass-strong);
-    display:flex; align-items:center; justify-content:center; font-size:15px; color:var(--text-1);
-    transition: transform .2s var(--ease-spring), background .2s;
-  }
-  #newPlaylistBtn:hover{ background: var(--accent-a); transform: scale(1.1) rotate(90deg); }
-  #playlistList{ overflow-y:auto; -webkit-overflow-scrolling: touch; display:flex; flex-direction:column; gap:1px; padding-bottom:8px; min-height:0; }
-  #playlistList::-webkit-scrollbar{ width:5px; }
-  #playlistList::-webkit-scrollbar-thumb{ background: var(--glass-strong); border-radius:4px; }
-  .playlist-row{
-    display:flex; align-items:center; justify-content:space-between; gap:8px;
-    padding: 9px 12px; border-radius: var(--radius-sm); font-size:13.5px; color: var(--text-2);
-    cursor:pointer; transition: all .2s var(--ease-smooth);
-  }
-  .playlist-row:hover{ background: var(--glass); color:#fff; }
-  .playlist-row.active{ background: var(--glass-strong); color:#fff; }
-  .playlist-row .count{ font-size:11px; color: var(--text-3); }
-  .playlist-del{ opacity:0; font-size:13px; color: var(--text-3); }
-  .playlist-row:hover .playlist-del{ opacity:1; }
-  .playlist-del:hover{ color: var(--accent-c); }
-
-  /* ---------- Main ---------- */
-  .main{ display:flex; flex-direction:column; min-width:0; min-height:0; gap:14px; }
-
-  .topbar{
-    display:flex; align-items:center; gap:12px; padding: 12px 18px;
-    animation: rise .6s .05s var(--ease-spring) both;
-  }
-  .mobile-only{ display:none; }
-  .search-form{ flex:1; }
-  .search-wrap{
-    display:flex; align-items:center; gap:10px;
-    background: rgba(0,0,0,0.28); border:1px solid var(--glass-border);
-    border-radius: 999px; padding: 11px 18px; max-width:480px;
-    transition: all .25s var(--ease-smooth);
-  }
-  .search-wrap:focus-within{ border-color: var(--accent-a); background: rgba(0,0,0,0.4); box-shadow: 0 0 0 4px rgba(10,132,255,0.15); }
-  .search-wrap svg{ width:16px; height:16px; opacity:.5; flex-shrink:0; }
-  #searchInput{
-    background:none; border:none; outline:none; color: var(--text-1);
-    font-size:14.5px; width:100%;
-  }
-  #searchInput::placeholder{ color: var(--text-3); }
-
-  .content{
-    flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling: touch;
-    padding: 4px 18px 24px;
-    animation: rise .6s .1s var(--ease-spring) both;
-  }
-  .content::-webkit-scrollbar{ width:7px; }
-  .content::-webkit-scrollbar-thumb{ background: var(--glass-strong); border-radius:4px; }
-
-  @keyframes rise{ from{ opacity:0; transform: translateY(14px); } to{ opacity:1; transform:none; } }
-
-  .section-title{ font-size:22px; font-weight:800; letter-spacing:-0.02em; margin: 18px 0 14px; }
-  .section-title:first-child{ margin-top:4px; }
-  .section-sub{ font-size:13px; color: var(--text-2); margin: -8px 0 16px; }
-
-  .chip-row{ display:flex; flex-wrap:wrap; gap:9px; }
-  .chip{
-    padding: 9px 17px; border-radius:999px; background: var(--glass);
-    border:1px solid var(--glass-border); font-size:13.5px; font-weight:600;
-    transition: all .22s var(--ease-spring);
-  }
-  .chip:hover{ background: var(--glass-strong); transform: translateY(-2px) scale(1.03); border-color: rgba(255,255,255,0.3); }
-  .chip:active{ transform: scale(.96); }
-
-  .grid{
-    display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap:16px; margin-top: 6px;
-  }
-  .card{
-    background: var(--glass); border:1px solid var(--glass-border); border-radius: var(--radius-md);
-    padding: 12px; cursor:pointer; transition: all .3s var(--ease-spring); position:relative; overflow:hidden;
-  }
-  .card:hover{ background: var(--glass-strong); transform: translateY(-4px); box-shadow: 0 16px 30px -14px rgba(0,0,0,.6); }
-  .card:active{ transform: translateY(-1px) scale(.98); }
-  .card.playing{ border-color: var(--accent-a); box-shadow: 0 0 0 1px var(--accent-a), 0 16px 30px -14px rgba(10,132,255,.4); }
-  .card-thumb{
-    width:100%; aspect-ratio:1; border-radius: var(--radius-sm); object-fit:cover;
-    background: linear-gradient(135deg, var(--glass-strong), var(--glass)); margin-bottom:10px;
-  }
-  .card-title{ font-size:13.5px; font-weight:700; line-height:1.3; margin-bottom:3px;
-    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .card-sub{ font-size:11.5px; color: var(--text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .card-playbadge{
-    position:absolute; top:20px; right:20px; width:26px; height:26px; border-radius:50%;
-    background: var(--accent-a); display:flex; align-items:center; justify-content:center;
-    opacity:0; transform: scale(.6); transition: all .25s var(--ease-spring); box-shadow: 0 4px 14px rgba(10,132,255,.5);
-  }
-  .card:hover .card-playbadge, .card.playing .card-playbadge{ opacity:1; transform:scale(1); }
-  .card-playbadge svg{ width:12px; height:12px; fill:#fff; }
-
-  .track-list{ display:flex; flex-direction:column; gap:2px; }
-  .track-row{
-    display:grid; grid-template-columns: 28px 44px 1fr auto; align-items:center; gap:14px;
-    padding: 8px 12px; border-radius: var(--radius-sm); cursor:pointer;
-    transition: background .2s var(--ease-smooth);
-  }
-  .track-row:hover{ background: var(--glass); }
-  .track-row.playing .track-idx{ color: var(--accent-a); }
-  .track-row.playing .track-name{ color: var(--accent-a); }
-  .track-idx{ font-size:13px; color: var(--text-3); text-align:center; }
-  .track-thumb{ width:44px; height:44px; border-radius:8px; object-fit:cover; background: var(--glass-strong); }
-  .track-meta{ min-width:0; }
-  .track-name{ font-size:13.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .track-artist{ font-size:11.5px; color: var(--text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .track-actions{ display:flex; gap:6px; opacity:0; transition: opacity .2s; }
-  .track-row:hover .track-actions{ opacity:1; }
-  .icon-btn{
-    width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    color: var(--text-2); transition: all .2s var(--ease-spring);
-  }
-  .icon-btn:hover{ background: var(--glass-strong); color:#fff; transform: scale(1.08); }
-  .icon-btn svg{ width:15px; height:15px; }
-  .icon-btn.liked{ color: var(--accent-c); }
-
-  .empty-state{
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; padding: 70px 20px; color: var(--text-2); gap:6px;
-  }
-  .empty-state .big{ font-size:17px; font-weight:700; color: var(--text-1); }
-  .empty-state .small{ font-size:13.5px; color: var(--text-3); max-width:340px; }
-  .spinner{
-    width:26px; height:26px; border-radius:50%; border:2.5px solid var(--glass-strong);
-    border-top-color: var(--accent-a); animation: spin .8s linear infinite; margin: 40px auto;
-  }
-  @keyframes spin{ to{ transform: rotate(360deg); } }
-
-  /* ---------- Now playing bar ---------- */
-  .now-playing{
-    position: fixed; left:14px; right:14px; bottom:14px; z-index:20;
-    height: 92px; border-radius: var(--radius-lg);
-    background: var(--glass-strong);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 12px 30px -14px rgba(0,0,0,.6);
-    display:grid; grid-template-columns: 300px 1fr 300px; align-items:center;
-    padding: 0 20px; gap:16px;
-    animation: rise .6s .15s var(--ease-spring) both;
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--void);
+    color:var(--text);
+    font-family:'Share Tech Mono', monospace;
     overflow:hidden;
+    overscroll-behavior:none;
   }
 
-  .np-track{ display:flex; align-items:center; gap:12px; min-width:0; }
-  .np-thumb{
-    width:56px; height:56px; border-radius:12px; object-fit:cover; flex-shrink:0;
-    background: linear-gradient(135deg, var(--glow-1), var(--glow-2));
-    box-shadow: 0 6px 18px -6px rgba(0,0,0,.6);
-    transition: transform .3s var(--ease-spring);
+  body{
+    display:flex;
+    flex-direction:column;
+    height:100dvh;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(77,232,220,0.08), transparent 55%),
+      var(--void);
   }
-  .np-thumb.spin{ animation: albumspin 12s linear infinite; }
-  @keyframes albumspin{ from{ transform: rotate(0); } to{ transform: rotate(360deg); } }
-  .np-meta{ min-width:0; }
-  .np-title{ font-size:13.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .np-artist{ font-size:11.5px; color: var(--text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .np-like{ flex-shrink:0; }
 
-  .np-center{ display:flex; flex-direction:column; align-items:center; gap:7px; min-width:0; }
-  .np-controls{ display:flex; align-items:center; gap:16px; }
-  .np-play{
-    width:36px; height:36px; border-radius:50%; background:#fff; color:#000;
+  /* subtle scanline texture */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:repeating-linear-gradient(0deg, rgba(77,232,220,0.025) 0px, rgba(77,232,220,0.025) 1px, transparent 1px, transparent 3px);
+    pointer-events:none;
+    z-index:1;
+  }
+
+  /* ---------- HEADER ---------- */
+  header{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 12px 18px;
+    border-bottom:1px solid var(--border);
+    z-index:2;
+  }
+  .brand{
+    font-family:'Orbitron', sans-serif;
+    font-weight:900;
+    font-size:15px;
+    letter-spacing:5px;
+    color:var(--cyan);
+    text-shadow:0 0 12px rgba(77,232,220,0.5);
+  }
+  .brand small{
+    display:block;
+    font-family:'Share Tech Mono', monospace;
+    font-weight:400;
+    font-size:9px;
+    letter-spacing:2px;
+    color:var(--text-dim);
+    margin-top:3px;
+  }
+  .gear{
+    width:34px; height:34px;
+    border:1px solid var(--border);
+    border-radius:4px;
     display:flex; align-items:center; justify-content:center;
-    transition: transform .18s var(--ease-spring), box-shadow .2s;
-    box-shadow: 0 4px 16px rgba(255,255,255,.25);
+    color:var(--cyan-soft);
+    background:var(--panel);
   }
-  .np-play:hover{ transform: scale(1.08); }
-  .np-play:active{ transform: scale(.92); }
-  .np-play svg{ width:15px; height:15px; }
-  .np-skip svg{ width:17px; height:17px; }
-  .np-skip{ color: var(--text-1); transition: transform .15s var(--ease-spring), color .15s; }
-  .np-skip:hover{ transform: scale(1.15); color: var(--accent-a); }
+  .gear svg{width:16px;height:16px;}
 
-  .np-progress{ display:flex; align-items:center; gap:8px; width:100%; max-width:440px; }
-  .np-time{ font-size:10.5px; color: var(--text-3); width:32px; text-align:center; font-variant-numeric: tabular-nums; }
-  .progress-track{
-    flex:1; height:4px; border-radius:2px; background: rgba(255,255,255,.14); position:relative; cursor:pointer;
+  /* ---------- CORE / ORB ---------- */
+  .core-zone{
+    flex:0 0 auto;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:22px 0 10px 0;
+    z-index:2;
   }
-  .progress-track:hover{ height:6px; }
-  .progress-fill{
-    position:absolute; left:0; top:0; height:100%; border-radius:2px; width:0%;
-    background: linear-gradient(90deg, var(--glow-1), var(--glow-2));
-    transition: width .2s linear;
+  .orb-wrap{
+    position:relative;
+    width:150px; height:150px;
   }
-  .progress-thumb{
-    position:absolute; top:50%; width:11px; height:11px; border-radius:50%; background:#fff;
-    transform: translate(-50%,-50%) scale(0); left:0%;
-    box-shadow: 0 2px 8px rgba(0,0,0,.5); transition: transform .18s var(--ease-spring);
+  .ring{
+    position:absolute; inset:0;
+    border-radius:50%;
+    border:1px solid var(--border);
   }
-  .progress-track:hover .progress-thumb{ transform: translate(-50%,-50%) scale(1); }
+  .ring.r2{ inset:14px; border-color:var(--cyan-dim); }
+  .ring.r3{
+    inset:0;
+    border:2px solid transparent;
+    border-top-color:var(--cyan-soft);
+    border-right-color:var(--cyan-soft);
+    animation:spin 6s linear infinite;
+  }
+  .ring.r4{
+    inset:26px;
+    border:1px dashed var(--cyan-dim);
+    animation:spin 14s linear infinite reverse;
+  }
+  .core{
+    position:absolute; inset:38px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #B9FFF7, var(--cyan) 40%, var(--cyan-soft) 75%, #0a2f2d 100%);
+    box-shadow:0 0 30px 4px rgba(77,232,220,0.45), inset 0 0 20px rgba(0,0,0,0.35);
+    transition:box-shadow .3s ease, transform .3s ease;
+  }
+  .tick{
+    position:absolute; left:50%; top:0;
+    width:1px; height:8px;
+    background:var(--cyan-dim);
+    transform-origin:50% 75px;
+  }
 
-  .np-right{ display:flex; align-items:center; justify-content:flex-end; gap:14px; }
-  .np-volume{ display:flex; align-items:center; gap:8px; }
-  .volume-track{ width:80px; height:4px; border-radius:2px; background: rgba(255,255,255,.14); position:relative; cursor:pointer; }
-  .volume-fill{ position:absolute; left:0; top:0; height:100%; border-radius:2px; width:70%; background:#fff; }
-  .np-add{ flex-shrink:0; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  @keyframes breathe{
+    0%,100%{ transform:scale(1); }
+    50%{ transform:scale(1.045); }
+  }
+  @keyframes pulseFast{
+    0%,100%{ transform:scale(1); box-shadow:0 0 30px 6px rgba(77,232,220,0.55), inset 0 0 20px rgba(0,0,0,0.35); }
+    50%{ transform:scale(1.12); box-shadow:0 0 46px 14px rgba(77,232,220,0.8), inset 0 0 20px rgba(0,0,0,0.3); }
+  }
+  @keyframes thinkFlicker{
+    0%,100%{ opacity:1; }
+    45%{ opacity:.55; }
+    55%{ opacity:1; }
+  }
 
-  /* ---------- Modal ---------- */
-  .modal-overlay{
-    position:fixed; inset:0; z-index:50; background: rgba(0,0,0,.7);
+  .orb-wrap[data-state="idle"] .core{ animation:breathe 3.6s ease-in-out infinite; }
+  .orb-wrap[data-state="listening"] .core{ animation:pulseFast 0.9s ease-in-out infinite; background:radial-gradient(circle at 35% 30%, #fff, var(--cyan) 40%, var(--cyan-soft) 75%, #0a2f2d 100%);}
+  .orb-wrap[data-state="thinking"] .ring.r3{ animation:spin 1.1s linear infinite; }
+  .orb-wrap[data-state="thinking"] .core{ animation:thinkFlicker 1s ease-in-out infinite; }
+  .orb-wrap[data-state="speaking"] .core{ animation:pulseFast 0.5s ease-in-out infinite; }
+
+  .status-label{
+    margin-top:16px;
+    font-family:'Orbitron', sans-serif;
+    font-size:11px;
+    letter-spacing:4px;
+    color:var(--cyan);
+    min-height:14px;
+  }
+  .status-label.err{ color:var(--red); }
+
+  /* ---------- LOG ---------- */
+  .log-frame{
+    flex:1 1 auto;
+    margin:6px 14px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    position:relative;
+    overflow:hidden;
+    z-index:2;
+    min-height:0;
+  }
+  .corner{ position:absolute; width:10px; height:10px; border-color:var(--cyan-soft); }
+  .corner.tl{ top:-1px; left:-1px; border-top:2px solid; border-left:2px solid; }
+  .corner.tr{ top:-1px; right:-1px; border-top:2px solid; border-right:2px solid; }
+  .corner.bl{ bottom:-1px; left:-1px; border-bottom:2px solid; border-left:2px solid; }
+  .corner.br{ bottom:-1px; right:-1px; border-bottom:2px solid; border-right:2px solid; }
+
+  .log{
+    height:100%;
+    overflow-y:auto;
+    padding:14px 14px 14px 14px;
+    font-size:13px;
+    line-height:1.55;
+    -webkit-overflow-scrolling:touch;
+  }
+  .line{ margin-bottom:10px; white-space:pre-wrap; word-break:break-word; }
+  .line .tag{ color:var(--text-dim); font-size:10px; letter-spacing:1px; display:block; margin-bottom:2px;}
+  .line.user .tag{ color:var(--cyan-soft); }
+  .line.user .txt{ color:var(--text); }
+  .line.assistant .tag{ color:var(--amber); }
+  .line.assistant .txt{ color:var(--text); }
+  .line.system .txt{ color:var(--text-dim); font-style:italic; }
+
+  /* ---------- INPUT BAR ---------- */
+  .input-bar{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 14px) 14px;
+    z-index:2;
+  }
+  .text-input{
+    flex:1;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:12px 12px;
+    color:var(--text);
+    font-family:'Share Tech Mono', monospace;
+    font-size:14px;
+    outline:none;
+  }
+  .text-input:focus{ border-color:var(--cyan-soft); }
+  .btn{
+    flex:0 0 auto;
+    width:46px; height:46px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--cyan);
     display:flex; align-items:center; justify-content:center;
-    opacity:0; pointer-events:none; transition: opacity .25s var(--ease-smooth);
   }
-  .modal-overlay.open{ opacity:1; pointer-events:auto; }
-  .modal{
-    width: 340px; max-width: 90vw; border-radius: var(--radius-lg); padding: 22px;
-    background: var(--glass-strong); border:1px solid var(--glass-border);
-    box-shadow: 0 30px 70px -20px rgba(0,0,0,.8);
-    transform: scale(.9) translateY(10px); transition: transform .3s var(--ease-spring);
+  .btn svg{ width:20px; height:20px; }
+  .btn.mic.on{
+    background:var(--cyan);
+    color:var(--void);
+    box-shadow:0 0 16px rgba(77,232,220,0.6);
   }
-  .modal-overlay.open .modal{ transform:none; }
-  .modal h3{ font-size:16px; font-weight:800; margin-bottom:14px; }
-  .modal-input{
-    width:100%; padding: 11px 14px; border-radius: var(--radius-sm); background: rgba(0,0,0,.3);
-    border:1px solid var(--glass-border); color:#fff; font-size:14px; outline:none; margin-bottom:12px;
-  }
-  .modal-input:focus{ border-color: var(--accent-a); }
-  .modal-list{ max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; margin-bottom:8px; }
-  .modal-playlist-opt{
-    padding:10px 12px; border-radius: var(--radius-sm); font-size:13.5px; cursor:pointer;
-    display:flex; justify-content:space-between; transition: background .2s;
-  }
-  .modal-playlist-opt:hover{ background: var(--glass); }
-  .modal-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
-  .btn{ padding: 9px 18px; border-radius:999px; font-size:13.5px; font-weight:700; transition: all .2s var(--ease-spring); }
-  .btn-primary{ background: var(--accent-a); color:#fff; }
-  .btn-primary:hover{ transform: scale(1.04); box-shadow: 0 6px 18px rgba(10,132,255,.4); }
-  .btn-ghost{ background: var(--glass); color: var(--text-2); }
-  .btn-ghost:hover{ background: var(--glass-strong); color:#fff; }
-  .hidden{ display:none !important; }
+  .btn:active{ opacity:0.7; }
 
-  /* ---------- Sidebar close button (mobile) ---------- */
-  .sidebar-close{
-    display:none; position:absolute; top:16px; right:14px; width:32px; height:32px;
-    border-radius:50%; background: var(--glass-strong); align-items:center; justify-content:center;
-    font-size:15px; color: var(--text-1); transition: transform .2s var(--ease-spring), background .2s;
-  }
-  .sidebar-close:hover{ background: var(--accent-c); transform: scale(1.08); }
-
-  .sidebar-backdrop{
-    display:none; position:fixed; inset:0; z-index:29; background: rgba(0,0,0,.6);
-    opacity:0; pointer-events:none; transition: opacity .3s var(--ease-smooth);
-  }
-  .sidebar-backdrop.open{ opacity:1; pointer-events:auto; }
-
-  /* ---------- Mobile ---------- */
-  @media (max-width: 860px){
-    .app{ grid-template-columns: 1fr; padding: 10px 10px 128px; }
-    .sidebar{
-      position:fixed; top:10px; bottom:128px; left:10px; width:240px; z-index:30;
-      transform: translateX(-280px); transition: transform .35s var(--ease-spring);
-    }
-    .sidebar.open{ transform:none; }
-    .sidebar-close{ display:flex; }
-    .sidebar-backdrop{ display:block; }
-    .mobile-only{ display:flex; width:38px; height:38px; border-radius:50%; background:var(--glass); align-items:center; justify-content:center; font-size:16px; }
-    .now-playing{ grid-template-columns: 1fr auto; height:auto; padding:10px 14px; row-gap:8px; }
-    .np-center{ grid-column: 1 / -1; order:3; }
-    .np-progress{ max-width:none; }
-    .np-right{ order:2; }
-    .np-volume{ display:none; }
-    .grid{ grid-template-columns: repeat(auto-fill, minmax(128px,1fr)); gap:12px; }
-  }
-
-  .debug-toggle{
-    position:fixed; bottom:130px; right:18px; z-index:60; width:34px; height:34px;
-    border-radius:50%; background: #1a1a1f;
-    border:1px solid var(--glass-border); display:flex; align-items:center; justify-content:center;
-    font-size:15px; opacity:.55;
-  }
-  .debug-panel{
-    position:fixed; bottom:172px; right:18px; z-index:60; width:min(320px, 80vw); max-height:40vh;
-    overflow-y:auto; background: #101013;
-    border:1px solid var(--glass-border); border-radius: 14px; padding:10px 12px;
-    font-family: ui-monospace, monospace; font-size:10.5px; line-height:1.5; color:#9fe6a0;
+  /* ---------- SETTINGS PANEL ---------- */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(2,5,6,0.85);
+    backdrop-filter:blur(4px);
     display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:10;
+    padding:20px;
   }
-  .debug-panel.open{ display:block; }
-  .debug-panel .err{ color:#ff6b6b; }
+  .overlay.show{ display:flex; }
+  .panel{
+    width:100%; max-width:360px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:20px;
+  }
+  .panel h2{
+    font-family:'Orbitron', sans-serif;
+    font-size:13px;
+    letter-spacing:3px;
+    color:var(--cyan);
+    margin:0 0 14px 0;
+  }
+  .panel label{
+    display:block;
+    font-size:11px;
+    color:var(--text-dim);
+    letter-spacing:1px;
+    margin-bottom:6px;
+  }
+  .panel input[type="password"], .panel input[type="text"]{
+    width:100%;
+    background:var(--void);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:10px;
+    color:var(--text);
+    font-family:'Share Tech Mono', monospace;
+    font-size:13px;
+    margin-bottom:14px;
+    outline:none;
+  }
+  .panel .hint{
+    font-size:11px;
+    color:var(--text-dim);
+    line-height:1.5;
+    margin-bottom:16px;
+  }
+  .panel .hint a{ color:var(--cyan-soft); }
+  .panel-buttons{ display:flex; gap:10px; }
+  .panel-buttons button{
+    flex:1;
+    padding:11px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    font-family:'Share Tech Mono', monospace;
+    font-size:12px;
+    letter-spacing:1px;
+  }
+  .save-btn{ background:var(--cyan); color:var(--void); border:none; font-weight:bold;}
+  .close-btn{ background:transparent; color:var(--text-dim); }
 </style>
 </head>
 <body>
 
-  <canvas id="colorSampler" width="10" height="10" style="display:none"></canvas>
-
-  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-
-  <div class="app">
-    <aside class="sidebar glass-panel" id="sidebar">
-      <button class="sidebar-close" id="sidebarCloseBtn" aria-label="Fermer le menu">✕</button>
-      <div class="logo">Écho</div>
-      <nav>
-        <button class="nav-item active" data-view="discover"><span class="ic">✦</span> Découvrir</button>
-        <button class="nav-item" data-view="liked"><span class="ic">♥</span> Titres aimés</button>
-      </nav>
-      <div class="playlists-section">
-        <div class="playlists-header">
-          <span>Playlists</span>
-          <button id="newPlaylistBtn" title="Créer une playlist" aria-label="Créer une playlist">+</button>
-        </div>
-        <ul id="playlistList"></ul>
-      </div>
-    </aside>
-
-    <main class="main">
-      <header class="topbar glass-panel">
-        <button class="icon-btn mobile-only" id="sidebarToggle" aria-label="Menu">☰</button>
-        <form class="search-form" id="searchForm">
-          <div class="search-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input id="searchInput" type="text" placeholder="Un artiste, un titre, une ambiance..." autocomplete="off">
-          </div>
-        </form>
-        <button class="icon-btn" id="settingsBtn" aria-label="Réglages (clé API YouTube)" title="Clé API YouTube">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </button>
-      </header>
-
-      <section class="content glass-panel" id="content"></section>
-    </main>
+<header>
+  <div class="brand">J.A.R.V.I.S<small>SYSTEME VOCAL &mdash; STANDBY</small></div>
+  <div class="gear" id="settingsBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09A1.65 1.65 0 0015.4 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.14.31.4.55.71.7.31.16.5.4.5.7v1.2c0 .3-.19.54-.5.7-.31.15-.57.39-.71.7z"/></svg>
   </div>
+</header>
 
-  <footer class="now-playing" id="nowPlaying">
-    <div class="np-track">
-      <img class="np-thumb" id="npThumb" alt="">
-      <div class="np-meta">
-        <div class="np-title" id="npTitle">Rien ne joue pour l'instant</div>
-        <div class="np-artist" id="npArtist">Choisis un titre pour commencer</div>
-      </div>
-      <button class="icon-btn np-like" id="npLikeBtn" aria-label="Aimer le titre" disabled>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
-      </button>
+<div class="core-zone">
+  <div class="orb-wrap" id="orb" data-state="idle">
+    <div class="ring r4"></div>
+    <div class="ring r2"></div>
+    <div class="ring r3"></div>
+    <div class="core"></div>
+  </div>
+  <div class="status-label" id="statusLabel">EN VEILLE</div>
+</div>
+
+<div class="log-frame">
+  <div class="corner tl"></div><div class="corner tr"></div>
+  <div class="corner bl"></div><div class="corner br"></div>
+  <div class="log" id="log">
+    <div class="line system"><span class="txt">// journal de session initialisé</span></div>
+  </div>
+</div>
+
+<div class="input-bar">
+  <button class="btn mic" id="micBtn" aria-label="Micro">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+  </button>
+  <input type="text" class="text-input" id="textInput" placeholder="Écris ou parle..." autocomplete="off" autocapitalize="sentences">
+  <button class="btn" id="sendBtn" aria-label="Envoyer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+  </button>
+</div>
+
+<!-- SETTINGS OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <h2>CONFIGURATION</h2>
+    <label for="apiKeyInput">Clé API Anthropic</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-...">
+    <div class="hint">
+      Récupère ta clé sur <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.
+      Elle reste stockée uniquement sur cet appareil (localStorage), jamais envoyée ailleurs qu'à l'API Anthropic.
+      Ne partage jamais ce fichier avec ta clé déjà remplie.
     </div>
-
-    <div class="np-center">
-      <div class="np-controls">
-        <button class="icon-btn np-skip" id="prevBtn" aria-label="Précédent" disabled>
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-        </button>
-        <button class="np-play" id="playBtn" aria-label="Lecture" disabled>
-          <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        </button>
-        <button class="icon-btn np-skip" id="nextBtn" aria-label="Suivant" disabled>
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z"/></svg>
-        </button>
-      </div>
-      <div class="np-progress">
-        <span class="np-time" id="curTime">0:00</span>
-        <div class="progress-track" id="progressTrack">
-          <div class="progress-fill" id="progressFill"></div>
-          <div class="progress-thumb" id="progressThumb"></div>
-        </div>
-        <span class="np-time" id="durTime">0:00</span>
-      </div>
-    </div>
-
-    <div class="np-right">
-      <button class="icon-btn np-add" id="npAddBtn" aria-label="Ajouter à une playlist" disabled>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
-      <div class="np-volume">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 10v4h4l5 5V5L7 10H3z"/></svg>
-        <div class="volume-track" id="volumeTrack">
-          <div class="volume-fill" id="volumeFill"></div>
-        </div>
-      </div>
-    </div>
-  </footer>
-
-  <div class="modal-overlay" id="playlistModalOverlay">
-    <div class="modal">
-      <h3>Ajouter à une playlist</h3>
-      <div class="modal-list" id="modalPlaylistList"></div>
-      <input class="modal-input" id="modalNewPlaylistInput" placeholder="Nouvelle playlist...">
-      <div class="modal-actions">
-        <button class="btn btn-ghost" id="modalCancelBtn">Annuler</button>
-        <button class="btn btn-primary" id="modalCreateBtn">Créer et ajouter</button>
-      </div>
+    <div class="panel-buttons">
+      <button class="close-btn" id="closeBtn">Fermer</button>
+      <button class="save-btn" id="saveBtn">Enregistrer</button>
     </div>
   </div>
-
-  <div class="modal-overlay" id="renameModalOverlay">
-    <div class="modal">
-      <h3>Nouvelle playlist</h3>
-      <input class="modal-input" id="renameInput" placeholder="Nom de la playlist...">
-      <div class="modal-actions">
-        <button class="btn btn-ghost" id="renameCancelBtn">Annuler</button>
-        <button class="btn btn-primary" id="renameConfirmBtn">Créer</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="apiKeyModalOverlay">
-    <div class="modal">
-      <h3>Clé API YouTube</h3>
-      <p style="font-size:12.5px;color:var(--text-2);line-height:1.6;margin-bottom:12px;">
-        La recherche a besoin d'une clé API YouTube gratuite. Sur
-        <span style="color:#fff;">console.cloud.google.com</span> : crée un projet →
-        active « YouTube Data API v3 » → Identifiants → Créer une clé API → colle-la ici.
-      </p>
-      <input class="modal-input" id="apiKeyInput" placeholder="Colle ta clé API ici..." autocomplete="off">
-      <div class="modal-actions">
-        <button class="btn btn-ghost" id="apiKeyClearBtn">Effacer</button>
-        <button class="btn btn-primary" id="apiKeySaveBtn">Enregistrer</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="yt-hidden" style="position:fixed;top:-9999px;left:-9999px;width:2px;height:2px;overflow:hidden;"></div>
-
-  <button class="debug-toggle" id="debugToggle" aria-label="Diagnostic">🐞</button>
-  <div class="debug-panel" id="debugPanel"></div>
+</div>
 
 <script>
 (function(){
-  "use strict";
+  const orb = document.getElementById('orb');
+  const statusLabel = document.getElementById('statusLabel');
+  const log = document.getElementById('log');
+  const textInput = document.getElementById('textInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const micBtn = document.getElementById('micBtn');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const overlay = document.getElementById('overlay');
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const saveBtn = document.getElementById('saveBtn');
+  const closeBtn = document.getElementById('closeBtn');
 
-  /* ============ Debug panel ============ */
-  const debugPanel = document.getElementById("debugPanel");
-  const debugToggle = document.getElementById("debugToggle");
-  debugToggle.addEventListener("click", ()=> debugPanel.classList.toggle("open"));
-  function debugLog(msg, isError){
-    const line = document.createElement("div");
-    if(isError) line.className = "err";
-    const t = new Date().toLocaleTimeString("fr-FR");
-    line.textContent = `[${t}] ${msg}`;
-    debugPanel.appendChild(line);
-    debugPanel.scrollTop = debugPanel.scrollHeight;
-  }
-  window.addEventListener("error", (e)=> debugLog("Erreur JS: " + e.message, true));
-  debugLog("Script chargé.");
-  setTimeout(()=>{
-    if(!playerReady) debugLog("⚠️ Le lecteur YouTube n'est toujours pas prêt après 6s (API bloquée ou domaine non autorisé ?).", true);
-  }, 6000);
+  let apiKey = localStorage.getItem('jarvis_api_key') || '';
+  let history = [];
+  let busy = false;
 
-  /* ============ State ============ */
-  const STORAGE_KEY = "echo_music_data_v1";
-  let store = loadStore();
-  let player = null;
-  let playerReady = false;
-  let queue = [];          // array of track objects currently playing through
-  let queueIndex = -1;
-  let currentView = "discover";
-  let currentPlaylistId = null;
-  let progressTimer = null;
-  let isSeeking = false;
+  const SYSTEM_PROMPT = `Tu es J.A.R.V.I.S, un assistant vocal personnel inspiré d'Iron Man.
+Tu es concis, direct, un peu spirituel mais toujours efficace.
+Tes réponses sont lues à voix haute : pas de markdown, pas de listes à puces, pas d'astérisques.
+Réponds en français, en 1 à 4 phrases sauf si on te demande plus de détails.
+Tu t'adresses à l'utilisateur avec respect, un peu comme un majordome futuriste.`;
 
-  const POPULAR_ARTISTS = [
-    "Stromae", "Aya Nakamura", "Drake", "Taylor Swift", "Dua Lipa",
-    "The Weeknd", "Angèle", "Bad Bunny", "Daft Punk", "Billie Eilish", "Jul", "SZA"
-  ];
-
-  function loadStore(){
-    try{
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if(raw) return JSON.parse(raw);
-    }catch(e){}
-    return { liked: [], playlists: {} };
-  }
-  function saveStore(){
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); }catch(e){}
+  function setState(state, label){
+    orb.setAttribute('data-state', state);
+    statusLabel.textContent = label;
+    statusLabel.classList.remove('err');
   }
 
-  const API_KEY_STORAGE = "echo_yt_api_key";
-  function getApiKey(){
-    try{ return localStorage.getItem(API_KEY_STORAGE) || ""; }catch(e){ return ""; }
+  function addLine(role, text){
+    const div = document.createElement('div');
+    div.className = 'line ' + role;
+    const tagText = role === 'user' ? 'TOI' : role === 'assistant' ? 'JARVIS' : 'SYSTEME';
+    div.innerHTML = '<span class="tag">' + tagText + '</span><span class="txt"></span>';
+    div.querySelector('.txt').textContent = text;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
   }
-  function setApiKey(key){
-    try{ localStorage.setItem(API_KEY_STORAGE, key); }catch(e){}
+
+  function errorLine(text){
+    addLine('system', text);
+    setState('idle', 'ERREUR');
+    statusLabel.classList.add('err');
+    setTimeout(()=> setState('idle','EN VEILLE'), 2500);
   }
-  function clearApiKey(){
-    try{ localStorage.removeItem(API_KEY_STORAGE); }catch(e){}
+
+  // ---------- Settings ----------
+  function openSettings(){
+    apiKeyInput.value = apiKey;
+    overlay.classList.add('show');
   }
-
-  /* ============ DOM refs ============ */
-  const contentEl = document.getElementById("content");
-  const playlistListEl = document.getElementById("playlistList");
-  const searchForm = document.getElementById("searchForm");
-  const searchInput = document.getElementById("searchInput");
-  const sidebar = document.getElementById("sidebar");
-  const sidebarToggle = document.getElementById("sidebarToggle");
-
-  const npThumb = document.getElementById("npThumb");
-  const npTitle = document.getElementById("npTitle");
-  const npArtist = document.getElementById("npArtist");
-  const npLikeBtn = document.getElementById("npLikeBtn");
-  const npAddBtn = document.getElementById("npAddBtn");
-  const playBtn = document.getElementById("playBtn");
-  const playIcon = document.getElementById("playIcon");
-  const prevBtn = document.getElementById("prevBtn");
-  const nextBtn = document.getElementById("nextBtn");
-  const progressTrack = document.getElementById("progressTrack");
-  const progressFill = document.getElementById("progressFill");
-  const progressThumb = document.getElementById("progressThumb");
-  const curTimeEl = document.getElementById("curTime");
-  const durTimeEl = document.getElementById("durTime");
-  const volumeTrack = document.getElementById("volumeTrack");
-  const volumeFill = document.getElementById("volumeFill");
-  const nowPlayingBar = document.getElementById("nowPlaying");
-  const colorSampler = document.getElementById("colorSampler");
-
-  const playlistModalOverlay = document.getElementById("playlistModalOverlay");
-  const modalPlaylistList = document.getElementById("modalPlaylistList");
-  const modalNewPlaylistInput = document.getElementById("modalNewPlaylistInput");
-  const modalCancelBtn = document.getElementById("modalCancelBtn");
-  const modalCreateBtn = document.getElementById("modalCreateBtn");
-
-  const renameModalOverlay = document.getElementById("renameModalOverlay");
-  const renameInput = document.getElementById("renameInput");
-  const renameCancelBtn = document.getElementById("renameCancelBtn");
-  const renameConfirmBtn = document.getElementById("renameConfirmBtn");
-
-  let trackPendingAdd = null;
-
-  /* ============ Sidebar nav ============ */
-  document.querySelectorAll(".nav-item").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
-      document.querySelectorAll(".playlist-row").forEach(b=>b.classList.remove("active"));
-      currentPlaylistId = null;
-      currentView = btn.dataset.view;
-      renderView();
-      closeSidebarMobile();
-    });
+  settingsBtn.addEventListener('click', openSettings);
+  closeBtn.addEventListener('click', ()=> overlay.classList.remove('show'));
+  saveBtn.addEventListener('click', ()=>{
+    apiKey = apiKeyInput.value.trim();
+    localStorage.setItem('jarvis_api_key', apiKey);
+    overlay.classList.remove('show');
+    addLine('system', apiKey ? 'clé API enregistrée.' : 'clé API effacée.');
   });
 
-  const sidebarBackdrop = document.getElementById("sidebarBackdrop");
-  const sidebarCloseBtn = document.getElementById("sidebarCloseBtn");
-
-  function openSidebarMobile(){
-    sidebar.classList.add("open");
-    sidebarBackdrop.classList.add("open");
-    debugLog("Menu ouvert.");
-  }
-  function closeSidebarMobile(){
-    sidebar.classList.remove("open");
-    sidebarBackdrop.classList.remove("open");
-    debugLog("Menu fermé (croix ou fond cliqué).");
-  }
-  sidebarToggle.addEventListener("click", ()=>{
-    sidebar.classList.contains("open") ? closeSidebarMobile() : openSidebarMobile();
-  });
-  sidebarCloseBtn.addEventListener("click", closeSidebarMobile);
-  sidebarBackdrop.addEventListener("click", closeSidebarMobile);
-
-  /* ============ API key settings modal ============ */
-  const settingsBtn = document.getElementById("settingsBtn");
-  const apiKeyModalOverlay = document.getElementById("apiKeyModalOverlay");
-  const apiKeyInput = document.getElementById("apiKeyInput");
-  const apiKeySaveBtn = document.getElementById("apiKeySaveBtn");
-  const apiKeyClearBtn = document.getElementById("apiKeyClearBtn");
-
-  settingsBtn.addEventListener("click", ()=>{
-    apiKeyInput.value = getApiKey();
-    apiKeyModalOverlay.classList.add("open");
-  });
-  apiKeyModalOverlay.addEventListener("click", (e)=>{ if(e.target===apiKeyModalOverlay) apiKeyModalOverlay.classList.remove("open"); });
-  apiKeySaveBtn.addEventListener("click", ()=>{
-    const key = apiKeyInput.value.trim();
-    if(key){ setApiKey(key); debugLog("Clé API enregistrée."); }
-    apiKeyModalOverlay.classList.remove("open");
-  });
-  apiKeyClearBtn.addEventListener("click", ()=>{
-    clearApiKey();
-    apiKeyInput.value = "";
-    debugLog("Clé API effacée.");
-  });
-
-  /* ============ Playlists sidebar render ============ */
-  function renderPlaylistsSidebar(){
-    playlistListEl.innerHTML = "";
-    const names = Object.keys(store.playlists);
-    if(names.length === 0){
-      const li = document.createElement("li");
-      li.style.cssText = "padding:9px 12px;font-size:12.5px;color:var(--text-3);";
-      li.textContent = "Aucune playlist pour l'instant";
-      playlistListEl.appendChild(li);
-      return;
-    }
-    names.forEach(name=>{
-      const li = document.createElement("li");
-      li.className = "playlist-row" + (currentView==="playlist" && currentPlaylistId===name ? " active":"");
-      li.innerHTML = `<span>${escapeHtml(name)}</span><span class="count">${store.playlists[name].length}</span><button class="playlist-del" aria-label="Supprimer">✕</button>`;
-      li.addEventListener("click", (e)=>{
-        if(e.target.classList.contains("playlist-del")) return;
-        document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("active"));
-        currentView = "playlist";
-        currentPlaylistId = name;
-        renderView();
-        closeSidebarMobile();
-      });
-      li.querySelector(".playlist-del").addEventListener("click", (e)=>{
-        e.stopPropagation();
-        delete store.playlists[name];
-        saveStore();
-        if(currentPlaylistId === name){ currentView="discover"; currentPlaylistId=null; }
-        renderPlaylistsSidebar();
-        renderView();
-      });
-      playlistListEl.appendChild(li);
-    });
+  if(!apiKey){
+    setTimeout(openSettings, 400);
   }
 
-  document.getElementById("newPlaylistBtn").addEventListener("click", ()=>{
-    renameInput.value = "";
-    renameModalOverlay.classList.add("open");
-    setTimeout(()=>renameInput.focus(), 50);
-  });
-  renameCancelBtn.addEventListener("click", ()=> renameModalOverlay.classList.remove("open"));
-  renameModalOverlay.addEventListener("click", (e)=>{ if(e.target===renameModalOverlay) renameModalOverlay.classList.remove("open"); });
-  renameConfirmBtn.addEventListener("click", ()=>{
-    const name = renameInput.value.trim();
-    if(!name) return;
-    if(!store.playlists[name]) store.playlists[name] = [];
-    saveStore();
-    renderPlaylistsSidebar();
-    renameModalOverlay.classList.remove("open");
-  });
-
-  /* ============ View rendering ============ */
-  function renderView(){
-    if(currentView === "discover") renderDiscover();
-    else if(currentView === "liked") renderTrackListView("Titres aimés", store.liked, "Aucun titre aimé pour l'instant", "Clique sur le cœur d'un titre pour le retrouver ici.");
-    else if(currentView === "playlist") renderTrackListView(currentPlaylistId, store.playlists[currentPlaylistId] || [], "Cette playlist est vide", "Ajoute des titres depuis une recherche ou tes titres aimés.");
+  // ---------- Text-to-Speech ----------
+  function speak(text){
+    if(!('speechSynthesis' in window)){ return; }
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'fr-FR';
+    utter.rate = 1.02;
+    utter.onstart = ()=> setState('speaking', 'JE PARLE');
+    utter.onend = ()=> setState('idle', 'EN VEILLE');
+    window.speechSynthesis.speak(utter);
   }
 
-  function renderDiscover(){
-    contentEl.innerHTML = `
-      <div class="section-title">Explorer</div>
-      <div class="section-sub">Choisis un artiste ou lance ta propre recherche en haut.</div>
-      <div class="chip-row" id="chipRow"></div>
-      <div id="resultsZone"></div>
-    `;
-    const chipRow = document.getElementById("chipRow");
-    POPULAR_ARTISTS.forEach(name=>{
-      const chip = document.createElement("button");
-      chip.className = "chip";
-      chip.textContent = name;
-      chip.addEventListener("click", ()=>{ searchInput.value = name; runSearch(name); });
-      chipRow.appendChild(chip);
-    });
-  }
-
-  function renderTrackListView(title, tracks, emptyBig, emptySmall){
-    contentEl.innerHTML = `<div class="section-title">${escapeHtml(title)}</div>`;
-    if(!tracks || tracks.length===0){
-      contentEl.innerHTML += emptyStateHtml(emptyBig, emptySmall);
-      return;
-    }
-    const listWrap = document.createElement("div");
-    listWrap.className = "track-list";
-    tracks.forEach((t, i)=>{
-      listWrap.appendChild(buildTrackRow(t, i, tracks));
-    });
-    contentEl.appendChild(listWrap);
-  }
-
-  function emptyStateHtml(big, small){
-    return `<div class="empty-state">
-      <div class="big">${escapeHtml(big)}</div>
-      <div class="small">${escapeHtml(small)}</div>
-    </div>`;
-  }
-
-  function buildTrackRow(track, index, listRef){
-    const row = document.createElement("div");
-    row.className = "track-row" + (isCurrentTrack(track) ? " playing" : "");
-    const liked = isLiked(track.id);
-    row.innerHTML = `
-      <div class="track-idx">${index+1}</div>
-      <img class="track-thumb" src="${escapeHtml(track.thumb)}" alt="" loading="lazy">
-      <div class="track-meta">
-        <div class="track-name">${escapeHtml(track.title)}</div>
-        <div class="track-artist">${escapeHtml(track.artist)}</div>
-      </div>
-      <div class="track-actions">
-        <button class="icon-btn like-btn ${liked?'liked':''}" aria-label="Aimer">
-          <svg viewBox="0 0 24 24" fill="${liked?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
-        </button>
-        <button class="icon-btn add-btn" aria-label="Ajouter à une playlist">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-      </div>
-    `;
-    row.addEventListener("click", (e)=>{
-      if(e.target.closest(".track-actions")) return;
-      playFromList(listRef, index);
-    });
-    row.querySelector(".like-btn").addEventListener("click", (e)=>{
-      e.stopPropagation();
-      toggleLike(track);
-      renderView();
-    });
-    row.querySelector(".add-btn").addEventListener("click", (e)=>{
-      e.stopPropagation();
-      openAddToPlaylistModal(track);
-    });
-    return row;
-  }
-
-  function isCurrentTrack(track){
-    return queueIndex>=0 && queue[queueIndex] && queue[queueIndex].id === track.id;
-  }
-  function isLiked(id){ return store.liked.some(t=>t.id===id); }
-  function toggleLike(track){
-    const idx = store.liked.findIndex(t=>t.id===track.id);
-    if(idx>=0) store.liked.splice(idx,1);
-    else store.liked.unshift(track);
-    saveStore();
-    updateNowPlayingLikeState();
-  }
-
-  /* ============ Search (YouTube, no API key) ============ */
-  searchForm.addEventListener("submit", (e)=>{
-    e.preventDefault();
-    const q = searchInput.value.trim();
-    if(q) runSearch(q);
-  });
-
-  function runSearch(query){
-    debugLog("Recherche lancée: " + query);
-    currentView = "discover";
-    document.querySelectorAll(".nav-item").forEach(b=>b.classList.remove("active"));
-    document.querySelector('.nav-item[data-view="discover"]').classList.add("active");
-    currentPlaylistId = null;
-    renderPlaylistsSidebar();
-
-    const apiKey = getApiKey();
+  // ---------- Brain (Claude) ----------
+  async function ask(userText){
     if(!apiKey){
-      contentEl.innerHTML = `<div class="section-title">Résultats pour « ${escapeHtml(query)} »</div>` + emptyStateHtml(
-        "Clé API YouTube requise",
-        "Clique sur l'icône ⚙️ en haut pour ajouter une clé API YouTube gratuite (nécessaire pour chercher des titres)."
-      );
+      errorLine('aucune clé API configurée. touche la roue crantée en haut à droite.');
+      openSettings();
       return;
     }
+    if(busy) return;
+    busy = true;
+    addLine('user', userText);
+    history.push({role:'user', content:userText});
+    setState('thinking', 'JE RÉFLÉCHIS');
 
-    contentEl.innerHTML = `<div class="section-title">Résultats pour « ${escapeHtml(query)} »</div><div class="spinner"></div>`;
-    doYouTubeSearch(query, apiKey);
-  }
-
-  async function doYouTubeSearch(query, apiKey){
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=16&type=video&q=${encodeURIComponent(query)}&key=${encodeURIComponent(apiKey)}`;
     try{
-      const res = await fetch(url);
-      const data = await res.json();
-      if(!res.ok){
-        const msg = (data && data.error && data.error.message) ? data.error.message : ("HTTP " + res.status);
-        debugLog("Erreur API YouTube: " + msg, true);
-        showSearchError(msg);
-        return;
-      }
-      const items = data.items || [];
-      debugLog(`API YouTube: ${items.length} résultat(s) pour "${query}".`);
-      if(!items.length){ showSearchError("Aucun résultat pour cette recherche."); return; }
-
-      const tracks = items.filter(it => it.id && it.id.videoId).map(it => ({
-        id: it.id.videoId,
-        title: it.snippet.title,
-        artist: it.snippet.channelTitle,
-        thumb: (it.snippet.thumbnails.medium || it.snippet.thumbnails.default).url
-      }));
-
-      queue = tracks;
-      queueIndex = -1;
-      renderSearchGrid(query, tracks);
-    }catch(err){
-      debugLog("Erreur réseau recherche: " + err.message, true);
-      showSearchError("Problème réseau pendant la recherche.");
-    }
-  }
-
-  function showSearchError(detail){
-    contentEl.innerHTML = `<div class="section-title">Recherche</div>` + emptyStateHtml(
-      "Aucun résultat trouvé",
-      detail || "Essaie un autre nom d'artiste ou de titre."
-    );
-  }
-
-  function renderSearchGrid(query, tracks){
-    contentEl.innerHTML = `<div class="section-title">Résultats pour « ${escapeHtml(query)} »</div>`;
-    const grid = document.createElement("div");
-    grid.className = "grid";
-    tracks.forEach((t, i)=>{
-      grid.appendChild(buildCard(t, i, tracks));
-    });
-    contentEl.appendChild(grid);
-  }
-
-  function buildCard(track, index, listRef){
-    const card = document.createElement("div");
-    card.className = "card" + (isCurrentTrack(track) ? " playing" : "");
-    card.innerHTML = `
-      <img class="card-thumb" src="${escapeHtml(track.thumb)}" alt="" loading="lazy">
-      <div class="card-playbadge">
-        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-      </div>
-      <div class="card-title">${escapeHtml(track.title)}</div>
-      <div class="card-sub">${escapeHtml(track.artist)}</div>
-    `;
-    card.addEventListener("click", ()=> playFromList(listRef, index));
-    return card;
-  }
-
-  /* ============ Playback ============ */
-  function playFromList(list, index){
-    queue = list;
-    queueIndex = index;
-    const track = queue[queueIndex];
-    if(playerReady){
-      player.loadVideoById(track.id);
-      player.playVideo();
-    }
-    syncNowPlayingMeta(track);
-    enablePlayerControls();
-    highlightPlayingUI();
-  }
-
-  function highlightPlayingUI(){
-    renderView();
-  }
-
-  function enablePlayerControls(){
-    playBtn.disabled = false;
-    prevBtn.disabled = false;
-    nextBtn.disabled = false;
-    npLikeBtn.disabled = false;
-    npAddBtn.disabled = false;
-  }
-
-  function syncNowPlayingMeta(track){
-    npTitle.textContent = track.title;
-    npArtist.textContent = track.artist;
-    npThumb.src = track.thumb;
-    updateNowPlayingLikeState(track);
-    sampleColorFromThumb(track.thumb);
-  }
-
-  function updateNowPlayingLikeState(track){
-    const t = track || (queueIndex>=0 ? queue[queueIndex] : null);
-    if(!t){ npLikeBtn.classList.remove("liked"); return; }
-    const liked = isLiked(t.id);
-    npLikeBtn.classList.toggle("liked", liked);
-    npLikeBtn.querySelector("svg").setAttribute("fill", liked ? "currentColor" : "none");
-  }
-
-  npLikeBtn.addEventListener("click", ()=>{
-    if(queueIndex<0) return;
-    toggleLike(queue[queueIndex]);
-    if(currentView==="liked" || currentView==="discover") renderView();
-  });
-
-  npAddBtn.addEventListener("click", ()=>{
-    if(queueIndex<0) return;
-    openAddToPlaylistModal(queue[queueIndex]);
-  });
-
-  playBtn.addEventListener("click", ()=>{
-    if(!playerReady || queueIndex<0) return;
-    const state = player.getPlayerState();
-    if(state === YT.PlayerState.PLAYING) player.pauseVideo();
-    else player.playVideo();
-  });
-
-  prevBtn.addEventListener("click", ()=>{
-    if(queue.length===0) return;
-    queueIndex = (queueIndex - 1 + queue.length) % queue.length;
-    const track = queue[queueIndex];
-    player.loadVideoById(track.id);
-    player.playVideo();
-    syncNowPlayingMeta(track);
-    highlightPlayingUI();
-  });
-
-  nextBtn.addEventListener("click", playNextTrack);
-
-  let consecutiveErrors = 0;
-
-  function playNextTrack(){
-    if(queue.length===0) return;
-    queueIndex = (queueIndex + 1) % queue.length;
-    const track = queue[queueIndex];
-    player.loadVideoById(track.id);
-    player.playVideo();
-    syncNowPlayingMeta(track);
-    highlightPlayingUI();
-  }
-
-  /* ============ Progress / seek ============ */
-  progressTrack.addEventListener("click", (e)=>{
-    if(!playerReady || queueIndex<0) return;
-    const rect = progressTrack.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    const duration = player.getDuration();
-    if(duration) player.seekTo(duration * ratio, true);
-  });
-
-  volumeTrack.addEventListener("click", (e)=>{
-    if(!playerReady) return;
-    const rect = volumeTrack.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    player.setVolume(Math.round(ratio*100));
-    volumeFill.style.width = (ratio*100) + "%";
-  });
-
-  function formatTime(sec){
-    if(!isFinite(sec) || sec<0) sec = 0;
-    const m = Math.floor(sec/60);
-    const s = Math.floor(sec%60);
-    return m + ":" + String(s).padStart(2,"0");
-  }
-
-  function startProgressLoop(){
-    stopProgressLoop();
-    progressTimer = setInterval(()=>{
-      if(!playerReady || queueIndex<0) return;
-      let cur=0, dur=0;
-      try{ cur = player.getCurrentTime()||0; dur = player.getDuration()||0; }catch(e){ return; }
-      const ratio = dur>0 ? (cur/dur)*100 : 0;
-      progressFill.style.width = ratio + "%";
-      progressThumb.style.left = ratio + "%";
-      curTimeEl.textContent = formatTime(cur);
-      durTimeEl.textContent = formatTime(dur);
-    }, 400);
-  }
-  function stopProgressLoop(){ if(progressTimer) clearInterval(progressTimer); }
-
-  /* ============ Ambient color sampling ============ */
-  function sampleColorFromThumb(url){
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = ()=>{
-      try{
-        const ctx = colorSampler.getContext("2d");
-        ctx.drawImage(img, 0, 0, 10, 10);
-        const data = ctx.getImageData(0,0,10,10).data;
-        let r=0,g=0,b=0,n=0;
-        for(let i=0;i<data.length;i+=4){ r+=data[i]; g+=data[i+1]; b+=data[i+2]; n++; }
-        r=Math.round(r/n); g=Math.round(g/n); b=Math.round(b/n);
-        const c1 = `rgb(${r},${g},${b})`;
-        const c2 = `rgb(${Math.min(255,r+50)},${Math.min(255,g+30)},${Math.min(255,b+70)})`;
-        document.documentElement.style.setProperty("--glow-1", c1);
-        document.documentElement.style.setProperty("--glow-2", c2);
-      }catch(e){ /* CORS or decoding issue: keep current glow colors */ }
-    };
-    img.onerror = ()=>{};
-    img.src = url;
-  }
-
-  /* ============ Add-to-playlist modal ============ */
-  function openAddToPlaylistModal(track){
-    trackPendingAdd = track;
-    modalPlaylistList.innerHTML = "";
-    const names = Object.keys(store.playlists);
-    if(names.length===0){
-      modalPlaylistList.innerHTML = `<div style="font-size:13px;color:var(--text-3);padding:8px 4px;">Aucune playlist. Crée-en une ci-dessous.</div>`;
-    }
-    names.forEach(name=>{
-      const opt = document.createElement("div");
-      opt.className = "modal-playlist-opt";
-      const already = store.playlists[name].some(t=>t.id===track.id);
-      opt.innerHTML = `<span>${escapeHtml(name)}</span><span>${already ? "✓ ajouté" : "Ajouter"}</span>`;
-      opt.addEventListener("click", ()=>{
-        if(!store.playlists[name].some(t=>t.id===track.id)){
-          store.playlists[name].push(track);
-          saveStore();
-        }
-        playlistModalOverlay.classList.remove("open");
-        renderPlaylistsSidebar();
-        if(currentView==="playlist" && currentPlaylistId===name) renderView();
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body: JSON.stringify({
+          model:'claude-sonnet-4-6',
+          max_tokens:400,
+          system: SYSTEM_PROMPT,
+          messages: history.slice(-20)
+        })
       });
-      modalPlaylistList.appendChild(opt);
-    });
-    modalNewPlaylistInput.value = "";
-    playlistModalOverlay.classList.add("open");
-  }
-  modalCancelBtn.addEventListener("click", ()=> playlistModalOverlay.classList.remove("open"));
-  playlistModalOverlay.addEventListener("click", (e)=>{ if(e.target===playlistModalOverlay) playlistModalOverlay.classList.remove("open"); });
-  modalCreateBtn.addEventListener("click", ()=>{
-    const name = modalNewPlaylistInput.value.trim();
-    if(!name || !trackPendingAdd) return;
-    if(!store.playlists[name]) store.playlists[name] = [];
-    if(!store.playlists[name].some(t=>t.id===trackPendingAdd.id)){
-      store.playlists[name].push(trackPendingAdd);
+
+      if(!res.ok){
+        const errBody = await res.text();
+        throw new Error('API ' + res.status + ' : ' + errBody.slice(0,180));
+      }
+
+      const data = await res.json();
+      const reply = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+      history.push({role:'assistant', content: reply});
+      addLine('assistant', reply);
+      speak(reply);
+    }catch(err){
+      errorLine('échec de connexion : ' + err.message);
+    }finally{
+      busy = false;
     }
-    saveStore();
-    renderPlaylistsSidebar();
-    playlistModalOverlay.classList.remove("open");
+  }
+
+  // ---------- Text input ----------
+  function submitText(){
+    const val = textInput.value.trim();
+    if(!val) return;
+    textInput.value = '';
+    ask(val);
+  }
+  sendBtn.addEventListener('click', submitText);
+  textInput.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') submitText();
   });
 
-  /* ============ Utils ============ */
-  function escapeHtml(str){
-    const div = document.createElement("div");
-    div.textContent = str==null ? "" : String(str);
-    return div.innerHTML;
+  // ---------- Speech recognition (push-to-talk) ----------
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognizer = null;
+  let listening = false;
+
+  if(SR){
+    recognizer = new SR();
+    recognizer.lang = 'fr-FR';
+    recognizer.interimResults = false;
+    recognizer.continuous = false;
+
+    recognizer.onstart = ()=>{
+      listening = true;
+      micBtn.classList.add('on');
+      setState('listening', 'JE T\u2019ÉCOUTE');
+    };
+    recognizer.onresult = (e)=>{
+      const transcript = e.results[0][0].transcript;
+      ask(transcript);
+    };
+    recognizer.onerror = (e)=>{
+      errorLine('micro indisponible (' + e.error + '). utilise le clavier, ou ouvre cette page directement dans Safari (pas en app ajoutée à l\u2019écran d\u2019accueil).');
+    };
+    recognizer.onend = ()=>{
+      listening = false;
+      micBtn.classList.remove('on');
+      if(orb.getAttribute('data-state') === 'listening'){
+        setState('idle', 'EN VEILLE');
+      }
+    };
+
+    micBtn.addEventListener('click', ()=>{
+      if(busy) return;
+      if(listening){ recognizer.stop(); return; }
+      try{ recognizer.start(); }
+      catch(err){ errorLine('impossible de démarrer le micro : ' + err.message); }
+    });
+  }else{
+    micBtn.addEventListener('click', ()=>{
+      errorLine('reconnaissance vocale indisponible sur ce navigateur. utilise le clavier ci-dessous. (Sur iPhone : ouvre cette page dans Safari directement, pas via une icône ajoutée à l\u2019écran d\u2019accueil.)');
+    });
   }
 
-  /* ============ YouTube IFrame API ============ */
-  window.onYouTubeIframeAPIReady = function(){
-    player = new YT.Player("yt-hidden", {
-      height: "2", width: "2",
-      playerVars: { autoplay: 1, controls: 0, disablekb: 1, playsinline: 1, origin: window.location.origin },
-      events: {
-        onReady: function(){
-          playerReady = true;
-          debugLog("Lecteur YouTube prêt.");
-          player.setVolume(70);
-          volumeFill.style.width = "70%";
-          startProgressLoop();
-        },
-        onStateChange: function(e){
-          if(e.data === YT.PlayerState.PLAYING){
-            consecutiveErrors = 0;
-            playIcon.setAttribute("d","M6 5h4v14H6zM14 5h4v14h-4z");
-            npThumb.classList.add("spin");
-          } else {
-            playIcon.setAttribute("d","M8 5v14l11-7z");
-            npThumb.classList.remove("spin");
-          }
-          if(e.data === YT.PlayerState.ENDED){
-            playNextTrack();
-          }
-        },
-        onError: function(e){
-          debugLog("Erreur lecteur YouTube (code " + (e && e.data) + ")", true);
-          consecutiveErrors++;
-          if(consecutiveErrors >= Math.min(queue.length, 5) && queue.length > 0){
-            debugLog("Trop d'erreurs à la suite, lecture arrêtée.", true);
-            npTitle.textContent = "Lecture impossible";
-            npArtist.textContent = "Ces titres ne peuvent pas être lus, essaie une autre recherche.";
-            consecutiveErrors = 0;
-            return;
-          }
-          playNextTrack();
-        }
-      }
-    });
-  };
-
-  const ytScript = document.createElement("script");
-  ytScript.src = "https://www.youtube.com/iframe_api";
-  document.head.appendChild(ytScript);
-
-  /* ============ Init ============ */
-  renderPlaylistsSidebar();
-  renderView();
-
+  addLine('system', 'dis bonjour à Jarvis, ou tape un message pour commencer.');
 })();
 </script>
 </body>
