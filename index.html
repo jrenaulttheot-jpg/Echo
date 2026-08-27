@@ -229,7 +229,7 @@
     <h2>CE QU'ÉCHO SAIT FAIRE</h2>
     <div class="group"><h3>DISCUTER</h3><p>Salutations, comment ça va, ton nom, remerciements, au revoir.</p></div>
     <div class="group"><h3>INFOS</h3><p>Heure actuelle, date du jour.</p></div>
-    <div class="group"><h3>RECHERCHE INTERNET</h3><p>Pose une question ("qui est...", "c'est quoi...", ou toute phrase finissant par un point d'interrogation) et Écho va chercher un résumé sur Wikipédia et te le lit à voix haute.</p></div>
+    <div class="group"><h3>RECHERCHE INTERNET</h3><p>Uniquement avec ces formulations : "c'est quoi [sujet]", "qui est [nom]", ou "cherche [sujet]". Écho va alors chercher un résumé sur Wikipédia et te le lit à voix haute. Le reste du temps il reste en mode discussion locale, même si tu poses une question au hasard.</p></div>
     <div class="group"><h3>DIVERTISSEMENT</h3><p>Demande-lui une blague, ou de lancer une pièce/un dé.</p></div>
     <div class="group"><h3>OUVRIR UN SITE</h3><p>"ouvre youtube", "ouvre google", "ouvre spotify"...</p></div>
     <div class="group"><h3>À NOTER</h3><p>Les réponses de discussion sont codées en dur (pas d'IA), mais la recherche interroge vraiment Wikipédia en direct — il faut une connexion internet pour ça.</p></div>
@@ -365,12 +365,7 @@
       || t.match(/^qu est ce que (.+)/) || t.match(/^qu est ce qu (.+)/)
       || t.match(/^c est quoi (.+)/) || t.match(/^qui est (.+)/) || t.match(/^qui etait (.+)/)
       || t.match(/^c est qui (.+)/);
-    if(m) return m[1].replace(/\?$/,'').trim();
-
-    // question générique (pourquoi/comment/quand/où...) ou phrase qui finit par "?"
-    if(/^(pourquoi|comment|quand|ou est|combien)\b/.test(t) || /\?\s*$/.test(text)){
-      return t.replace(/\?$/,'').trim();
-    }
+    if(m && m[1].trim().length > 1) return m[1].replace(/\?$/,'').trim();
     return null;
   }
 
@@ -432,8 +427,19 @@
       return;
     }
 
-    // 2) sinon, recherche internet
-    const query = tryOpenSearch(userText) || userText;
+    // 2) sinon, recherche internet — uniquement si la formulation est explicite
+    const query = tryOpenSearch(userText);
+    if(!query){
+      const fallback = pick([
+        "Je n'ai pas cette réponse en stock. Pour que je cherche sur internet, dis \u00ab c'est quoi... \u00bb, \u00ab qui est... \u00bb ou \u00ab cherche... \u00bb.",
+        "Commande non reconnue. Touche la roue crantée pour voir ce que je sais faire, ou demande-moi \u00ab c'est quoi [un sujet] \u00bb pour que je cherche.",
+        "Je ne connais pas encore ça en local. Essaie \u00ab qui est... \u00bb ou \u00ab cherche... \u00bb si tu veux que j'aille voir sur internet."
+      ]);
+      addLine('assistant', fallback);
+      speak(fallback);
+      busy = false;
+      return;
+    }
     setState('thinking', 'JE CHERCHE SUR INTERNET');
     try{
       const result = await searchInternet(query);
