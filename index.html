@@ -209,9 +209,7 @@
 <div class="log-frame">
   <div class="corner tl"></div><div class="corner tr"></div>
   <div class="corner bl"></div><div class="corner br"></div>
-  <div class="log" id="log">
-    <div class="line system"><span class="txt">// journal de session initialisé</span></div>
-  </div>
+  <div class="log" id="log"></div>
 </div>
 
 <div class="input-bar">
@@ -232,7 +230,9 @@
     <div class="group"><h3>RECHERCHE INTERNET</h3><p>Uniquement avec ces formulations : "c'est quoi [sujet]", "qui est [nom]", ou "cherche [sujet]". Écho va alors chercher un résumé sur Wikipédia et te le lit à voix haute. Le reste du temps il reste en mode discussion locale, même si tu poses une question au hasard.</p></div>
     <div class="group"><h3>DIVERTISSEMENT</h3><p>Demande-lui une blague, ou de lancer une pièce/un dé.</p></div>
     <div class="group"><h3>OUVRIR UN SITE</h3><p>"ouvre youtube", "ouvre google", "ouvre spotify"...</p></div>
-    <div class="group"><h3>À NOTER</h3><p>Les réponses de discussion sont codées en dur (pas d'IA), mais la recherche interroge vraiment Wikipédia en direct — il faut une connexion internet pour ça.</p></div>
+    <div class="group"><h3>MÉMOIRE</h3><p>Toutes vos conversations sont sauvegardées sur ce téléphone (dans Safari) et rechargées à chaque ouverture. Dis "oublie tout" pour tout effacer.</p></div>
+    <div class="group"><h3>LUI APPRENDRE DES CHOSES</h3><p>"X ça veut dire Y" → apprend un alias (ex : "slt ça veut dire salut").<br>"quand je dis X, dis Y" → apprend une réponse précise.<br>Juste après une réponse qui ne te va pas : "non, dis plutôt..." ou "ne fais pas ça, fais..." → corrige pour la prochaine fois.</p></div>
+    <div class="group"><h3>À NOTER</h3><p>Les réponses de discussion sont codées en dur + ce que tu lui apprends (pas d'IA), mais la recherche interroge vraiment Wikipédia en direct — il faut une connexion internet pour ça. La mémoire reste sur cet appareil : si tu changes de téléphone ou effaces les données Safari, elle disparaît.</p></div>
     <button class="close-btn" id="closeBtn">Fermer</button>
   </div>
 </div>
@@ -250,6 +250,20 @@
   const closeBtn = document.getElementById('closeBtn');
 
   let busy = false;
+  let lastUserInput = null; // pour les corrections ("dis plutôt...")
+
+  // ---------- Mémoire persistante ----------
+  const STORE = {
+    history: JSON.parse(localStorage.getItem('echo_history') || '[]'),
+    aliases: JSON.parse(localStorage.getItem('echo_aliases') || '{}'),
+    customRules: JSON.parse(localStorage.getItem('echo_custom_rules') || '{}')
+  };
+
+  function persist(){
+    localStorage.setItem('echo_history', JSON.stringify(STORE.history.slice(-300)));
+    localStorage.setItem('echo_aliases', JSON.stringify(STORE.aliases));
+    localStorage.setItem('echo_custom_rules', JSON.stringify(STORE.customRules));
+  }
 
   function setState(state, label){
     orb.setAttribute('data-state', state);
@@ -257,7 +271,8 @@
     statusLabel.classList.remove('err');
   }
 
-  function addLine(role, text){
+  function addLine(role, text, opts){
+    opts = opts || {};
     const div = document.createElement('div');
     div.className = 'line ' + role;
     const tagText = role === 'user' ? 'TOI' : role === 'assistant' ? 'ÉCHO' : 'SYSTEME';
@@ -265,6 +280,19 @@
     div.querySelector('.txt').textContent = text;
     log.appendChild(div);
     log.scrollTop = log.scrollHeight;
+    if(!opts.skipSave){
+      STORE.history.push({role: role, text: text, ts: Date.now()});
+      persist();
+    }
+  }
+
+  function replayHistory(){
+    if(STORE.history.length === 0){
+      addLine('system', 'dis bonjour, pose une question, ou touche la roue crantée pour voir ce qu\u2019Écho sait faire.');
+      return;
+    }
+    STORE.history.forEach(entry => addLine(entry.role, entry.text, {skipSave:true}));
+    addLine('system', '— session précédente restaurée —', {skipSave:true});
   }
 
   function errorLine(text){
@@ -319,6 +347,71 @@
     'amazon': 'https://amazon.fr',
     'wikipedia': 'https://fr.wikipedia.org'
   };
+
+  // ---------- Apprentissage ----------
+  function processTeaching(rawText){
+    const t = norm(rawText);
+
+    // reset mémoire
+    if(t === 'oublie tout' || t === 'efface ta memoire' || t === 'efface tout'){
+      STORE.history = [];
+      STORE.aliases = {};
+      STORE.customRules = {};
+      persist();
+      return "Mémoire effacée. Je repars de zéro.";
+    }
+
+    // "X ça veut dire Y"  ->  alias
+    if(t.includes(' ca veut dire ')){
+      const parts = t.split(' ca veut dire ');
+      const key = parts[0].trim();
+      const meaning = parts.slice(1).join(' ca veut dire ').trim();
+      if(key && meaning){
+        STORE.aliases[key] = meaning;
+        persist();
+        return "Compris. Pour moi désormais, « " + key + " » veut dire « " + meaning + " ».";
+      }
+    }
+
+    // "quand je dis X, dis/réponds Y"
+    if(t.startsWith('quand je dis ') || t.startsWith('si je dis ')){
+      let rest = t.replace(/^(quand je dis |si je dis )/, '');
+      let sep = null;
+      if(rest.includes(' reponds ')) sep = ' reponds ';
+      else if(rest.includes(' dis ')) sep = ' dis ';
+      if(sep){
+        const idx = rest.indexOf(sep);
+        const trigger = rest.slice(0, idx).replace(/,$/,'').trim();
+        const response = rest.slice(idx + sep.length).trim();
+        if(trigger && response){
+          STORE.customRules[trigger] = response;
+          persist();
+          return "Noté. Quand tu diras « " + trigger + " », je répondrai « " + response + " ».";
+        }
+      }
+    }
+
+    // correction : "non dis plutôt...", "ne dis pas ça, dis...", "ne fais pas ça, fais..."
+    if(/^(non[, ]|ne (dis|fais) pas ca)/.test(t)){
+      let rest = t.replace(/^non[, ]*/, '').replace(/^ne (dis|fais) pas ca[, ]*/, '');
+      const m = rest.match(/^(dis|fais|reponds)( plutot)? (.+)/);
+      if(m && m[3]){
+        if(!lastUserInput){
+          return "Je ne sais pas encore à quoi tu fais référence — dis-moi d'abord quelque chose, puis corrige-moi juste après.";
+        }
+        STORE.customRules[lastUserInput] = m[3].trim();
+        persist();
+        return "Compris, je corrige ça pour la prochaine fois.";
+      }
+    }
+
+    return null; // pas une commande d'apprentissage
+  }
+
+  function resolveAlias(t){
+    if(STORE.aliases[t]) return norm(STORE.aliases[t]);
+    return t;
+  }
 
   // ---------- Moteur de règles ----------
   const RULES = [
@@ -392,7 +485,12 @@
   }
 
   function respond(userText){
-    const site = tryOpenSite(userText);
+    let t = norm(userText);
+    t = resolveAlias(t);
+
+    if(STORE.customRules[t]) return STORE.customRules[t];
+
+    const site = tryOpenSite(t);
     if(site){
       if(site.unknown){
         return "Je ne connais que quelques sites : " + Object.keys(SITES).join(', ') + ".";
@@ -401,7 +499,6 @@
       return "J'ouvre " + site.name + ".";
     }
 
-    const t = norm(userText);
     for(const rule of RULES){
       if(rule.test.test(t)){
         return rule.respond();
@@ -416,12 +513,15 @@
     addLine('user', userText);
     setState('thinking', 'JE RÉFLÉCHIS');
 
-    // 1) réponses locales (règles, sites...)
-    const local = respond(userText);
+    // 1) commande d'apprentissage en priorité (appelée une seule fois, effet de bord inclus)
+    const teach = processTeaching(userText);
+    const isTeachingCmd = teach !== null;
+    const local = isTeachingCmd ? teach : respond(userText);
     if(local !== null){
       setTimeout(()=>{
         addLine('assistant', local);
         speak(local);
+        if(!isTeachingCmd) lastUserInput = resolveAlias(norm(userText));
         busy = false;
       }, 300);
       return;
@@ -503,7 +603,7 @@
       errorLine('reconnaissance vocale indisponible. utilise le clavier. (ouvre cette page dans Safari directement, pas via l\u2019écran d\u2019accueil.)'));
   }
 
-  addLine('system', 'dis bonjour, pose une question, ou touche la roue crantée pour voir ce qu\u2019Écho sait faire.');
+  replayHistory();
 })();
 </script>
 </body>
