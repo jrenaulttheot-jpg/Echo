@@ -250,6 +250,20 @@
   .panel .group{ margin-bottom:15px; }
   .panel .group h3{ font-size:10px; font-weight:800; letter-spacing:1.5px; color:var(--cyan); margin:0 0 6px 0; text-transform:uppercase; }
   .panel .group p{ font-size:12.5px; color:var(--text-dim); line-height:1.6; margin:0; }
+  .panel .group input[type="password"]{
+    width:100%; margin-top:10px; padding:11px 13px; border-radius:14px;
+    background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.18);
+    color:var(--text); font-family:'Manrope', sans-serif; font-size:13px; outline:none;
+  }
+  .panel .group input[type="password"]:focus{ border-color:var(--cyan); }
+  .key-hint{ font-size:11px; color:var(--text-dim); line-height:1.5; margin-top:8px; }
+  .key-hint a{ color:var(--cyan-soft); }
+  .save-key-btn{
+    width:100%; margin-top:10px; padding:11px; border-radius:14px; border:none;
+    font-family:'Manrope', sans-serif; font-weight:700; font-size:12.5px;
+    background:linear-gradient(135deg, var(--violet), var(--cyan-soft)); color:#0a0f1a;
+  }
+  .save-key-btn:active{ transform:scale(0.97); }
   .close-btn{
     width:100%; padding:13px; border-radius:16px; margin-top:8px;
     font-family:'Manrope', sans-serif; font-weight:700; font-size:13px;
@@ -306,6 +320,11 @@
 <div class="overlay" id="overlay">
   <div class="panel glass">
     <h2>CE QU'ÉCHO SAIT FAIRE</h2>
+    <div class="group"><h3>Intelligence artificielle (optionnel)</h3><p>Colle ta clé API Groq (gratuite) ci-dessous pour qu'Écho réponde à tout, pas seulement à ce qui est codé en dur.</p>
+      <input type="password" id="apiKeyInput" placeholder="gsk_...">
+      <div class="key-hint">Récupère une clé gratuite sur <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a>. Stockée uniquement sur cet appareil, jamais envoyée ailleurs qu'à Groq. Ne la partage jamais ailleurs, même en discussion.</div>
+      <button class="save-key-btn" id="saveKeyBtn">Enregistrer la clé</button>
+    </div>
     <div class="group"><h3>Discuter</h3><p>Salutations, comment ça va, ton nom, remerciements, au revoir.</p></div>
     <div class="group"><h3>Infos</h3><p>Heure actuelle, date du jour.</p></div>
     <div class="group"><h3>Recherche internet</h3><p>Uniquement avec ces formulations : "c'est quoi [sujet]", "qui est [nom]", ou "cherche [sujet]". Écho va alors chercher un résumé sur Wikipédia et te le lit à voix haute. Le reste du temps il reste en mode discussion locale, même si tu poses une question au hasard.</p></div>
@@ -329,9 +348,12 @@
   const settingsBtn = document.getElementById('settingsBtn');
   const overlay = document.getElementById('overlay');
   const closeBtn = document.getElementById('closeBtn');
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const saveKeyBtn = document.getElementById('saveKeyBtn');
 
   let busy = false;
   let lastUserInput = null; // pour les corrections ("dis plutôt...")
+  let groqKey = localStorage.getItem('echo_groq_key') || '';
 
   // ---------- Mémoire persistante ----------
   const STORE = {
@@ -383,8 +405,17 @@
     setTimeout(()=> setState('idle','EN VEILLE'), 2200);
   }
 
-  settingsBtn.addEventListener('click', ()=> overlay.classList.add('show'));
+  settingsBtn.addEventListener('click', ()=>{
+    apiKeyInput.value = groqKey;
+    overlay.classList.add('show');
+  });
   closeBtn.addEventListener('click', ()=> overlay.classList.remove('show'));
+  saveKeyBtn.addEventListener('click', ()=>{
+    groqKey = apiKeyInput.value.trim();
+    localStorage.setItem('echo_groq_key', groqKey);
+    addLine('system', groqKey ? 'clé Groq enregistrée. Écho peut maintenant répondre à tout.' : 'clé Groq effacée.');
+    overlay.classList.remove('show');
+  });
 
   function speak(text){
     if(!('speechSynthesis' in window)) return;
@@ -558,6 +589,31 @@
     return { title: sumData.title, text: sentences.join(' ') };
   }
 
+  async function askGroq(userText){
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer ' + groqKey
+      },
+      body: JSON.stringify({
+        model:'llama-3.3-70b-versatile',
+        messages:[
+          { role:'system', content:"Tu es Écho, un assistant vocal personnel. Réponds en français, de façon concise (1 à 3 phrases), naturelle à l'oral (pas de markdown, pas de listes à puces)." },
+          { role:'user', content:userText }
+        ],
+        max_tokens:300
+      })
+    });
+    if(!res.ok){
+      const errText = await res.text();
+      throw new Error('API ' + res.status + ' : ' + errText.slice(0,150));
+    }
+    const data = await res.json();
+    const reply = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    return (reply || '').trim();
+  }
+
   function respond(userText){
     let t = norm(userText);
     t = resolveAlias(t);
@@ -601,34 +657,59 @@
     }
 
     const query = tryOpenSearch(userText);
-    if(!query){
-      const fallback = pick([
-        "Je n'ai pas cette réponse en stock. Pour que je cherche sur internet, dis \u00ab c'est quoi... \u00bb, \u00ab qui est... \u00bb ou \u00ab cherche... \u00bb.",
-        "Commande non reconnue. Touche la roue crantée pour voir ce que je sais faire, ou demande-moi \u00ab c'est quoi [un sujet] \u00bb pour que je cherche.",
-        "Je ne connais pas encore ça en local. Essaie \u00ab qui est... \u00bb ou \u00ab cherche... \u00bb si tu veux que j'aille voir sur internet."
-      ]);
-      addLine('assistant', fallback);
-      speak(fallback);
+    if(query){
+      setState('thinking', 'JE CHERCHE SUR INTERNET');
+      try{
+        const result = await searchInternet(query);
+        if(result){
+          const reply = result.text;
+          addLine('assistant', reply + '  (source : Wikipédia — ' + result.title + ')');
+          speak(reply);
+        }else if(groqKey){
+          await askGroqAndReply(userText);
+        }else{
+          const reply = "Je n'ai rien trouvé de fiable sur Wikipédia. Je t'ouvre une recherche Google à la place.";
+          window.open('https://www.google.com/search?q=' + encodeURIComponent(query), '_blank');
+          addLine('assistant', reply);
+          speak(reply);
+        }
+      }catch(err){
+        errorLine('recherche impossible : ' + err.message);
+      }
       busy = false;
       return;
     }
-    setState('thinking', 'JE CHERCHE SUR INTERNET');
+
+    // 3) sinon, si une clé Groq est configurée, on demande à une vraie IA
+    if(groqKey){
+      await askGroqAndReply(userText);
+      busy = false;
+      return;
+    }
+
+    const fallback = pick([
+      "Je n'ai pas cette réponse en stock. Pour que je cherche sur internet, dis \u00ab c'est quoi... \u00bb, \u00ab qui est... \u00bb ou \u00ab cherche... \u00bb. Tu peux aussi ajouter une clé Groq gratuite dans les réglages pour que je réponde à tout.",
+      "Commande non reconnue. Touche la roue crantée pour voir ce que je sais faire, ou ajoute une clé Groq (gratuite) dans les réglages pour débloquer les réponses libres.",
+      "Je ne connais pas encore ça en local. Essaie \u00ab qui est... \u00bb ou \u00ab cherche... \u00bb, ou configure une clé Groq gratuite dans les réglages."
+    ]);
+    addLine('assistant', fallback);
+    speak(fallback);
+    busy = false;
+  }
+
+  async function askGroqAndReply(userText){
+    setState('thinking', 'JE RÉFLÉCHIS');
     try{
-      const result = await searchInternet(query);
-      if(result){
-        const reply = result.text;
-        addLine('assistant', reply + '  (source : Wikipédia — ' + result.title + ')');
-        speak(reply);
-      }else{
-        const reply = "Je n'ai rien trouvé de fiable sur Wikipédia. Je t'ouvre une recherche Google à la place.";
-        window.open('https://www.google.com/search?q=' + encodeURIComponent(query), '_blank');
+      const reply = await askGroq(userText);
+      if(reply){
         addLine('assistant', reply);
         speak(reply);
+      }else{
+        errorLine("réponse vide de l'IA, réessaie.");
       }
     }catch(err){
-      errorLine('recherche impossible : ' + err.message);
+      errorLine('IA indisponible : ' + err.message);
     }
-    busy = false;
   }
 
   function submitText(){
