@@ -597,7 +597,7 @@
           'Authorization':'Bearer unused'
         },
         body: JSON.stringify({
-          model:'gpt-4o-mini-2024-07-18',
+          model:'fast',
           messages:[
             { role:'system', content:"Tu es Écho, un assistant vocal personnel. Réponds en français, de façon concise (1 à 3 phrases), naturelle à l'oral (pas de markdown, pas de listes à puces)." },
             { role:'user', content:userText }
@@ -617,43 +617,8 @@
     return (reply || '').trim();
   }
 
-  async function askPollinations(userText){
-    let res;
-    try{
-      res = await fetch('https://text.pollinations.ai/openai', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({
-          model:'openai-fast',
-          messages:[
-            { role:'system', content:"Tu es Écho, un assistant vocal personnel. Réponds en français, de façon concise (1 à 3 phrases), naturelle à l'oral (pas de markdown, pas de listes à puces)." },
-            { role:'user', content:userText }
-          ]
-        })
-      });
-    }catch(networkErr){
-      throw new Error('Pollinations réseau/CORS : ' + networkErr.message);
-    }
-    if(!res.ok){
-      let body = '';
-      try{ body = (await res.text()).slice(0,200); }catch(e){}
-      throw new Error('Pollinations HTTP ' + res.status + (body ? ' — ' + body : ''));
-    }
-    const data = await res.json();
-    const reply = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-    return (reply || '').trim();
-  }
-
   async function askAI(userText){
-    try{
-      return await askLLM7(userText);
-    }catch(err1){
-      try{
-        return await askPollinations(userText);
-      }catch(err2){
-        throw new Error('[1] ' + err1.message + '  [2] ' + err2.message);
-      }
-    }
+    return await askLLM7(userText);
   }
 
   function respond(userText){
