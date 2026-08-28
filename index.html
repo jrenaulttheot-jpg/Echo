@@ -587,8 +587,19 @@
     return { title: sumData.title, text: sentences.join(' ') };
   }
 
+  function buildAIHistory(){
+    // les 16 derniers échanges user/assistant (on ignore les lignes système)
+    return STORE.history
+      .filter(function(e){ return e.role === 'user' || e.role === 'assistant'; })
+      .slice(-16)
+      .map(function(e){ return { role: e.role, content: e.text }; });
+  }
+
   async function askLLM7(userText){
     let res;
+    const messages = [
+      { role:'system', content:"Tu es Écho, un assistant vocal personnel. Réponds en français, de façon concise (1 à 3 phrases), naturelle à l'oral (pas de markdown, pas de listes à puces). Tu n'as ni chat, ni animal, ni corps : tu es un assistant logiciel. Ne raconte jamais d'anecdotes personnelles inventées." }
+    ].concat(buildAIHistory());
     try{
       res = await fetch('https://api.llm7.io/v1/chat/completions', {
         method:'POST',
@@ -598,10 +609,7 @@
         },
         body: JSON.stringify({
           model:'fast',
-          messages:[
-            { role:'system', content:"Tu es Écho, un assistant vocal personnel. Réponds en français, de façon concise (1 à 3 phrases), naturelle à l'oral (pas de markdown, pas de listes à puces)." },
-            { role:'user', content:userText }
-          ]
+          messages: messages
         })
       });
     }catch(networkErr){
