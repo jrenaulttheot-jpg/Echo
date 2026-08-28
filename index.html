@@ -110,46 +110,10 @@
   .gear svg{ width:17px; height:17px; }
   .gear:active{ transform:scale(0.9); }
 
-  /* ---------- SCENE 3D ---------- */
+  /* ---------- SCENE (blob de particules) ---------- */
   .core-zone{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:18px 0 6px 0; z-index:2; }
-  .scene{ width:170px; height:170px; perspective:900px; position:relative; }
-  .orb3d{
-    position:absolute; inset:0;
-    transform-style:preserve-3d;
-    animation:floatY 5s ease-in-out infinite;
-  }
-  @keyframes floatY{
-    0%,100%{ transform:translateY(0) rotateX(10deg) rotateY(0deg); }
-    50%{ transform:translateY(-9px) rotateX(6deg) rotateY(6deg); }
-  }
-
-  .ring-tilt{ position:absolute; inset:6px; transform:rotateX(72deg); }
-  .ring-tilt.r2{ inset:-14px; transform:rotateX(72deg) rotateZ(20deg); }
-  .ring-spin{
-    width:100%; height:100%; border-radius:50%;
-    border:1.5px solid rgba(94,234,224,0.55);
-    box-shadow:0 0 16px rgba(94,234,224,0.25);
-    animation:spinZ 7s linear infinite;
-  }
-  .ring-tilt.r2 .ring-spin{ border-color:rgba(139,124,255,0.4); animation-duration:11s; animation-direction:reverse; }
-  @keyframes spinZ{ to{ transform:rotateZ(360deg); } }
-
-  .core3d{
-    position:absolute; inset:38px; border-radius:50%;
-    background:radial-gradient(circle at 32% 26%, #FFFFFF 0%, var(--cyan) 30%, var(--cyan-soft) 65%, #04211f 100%);
-    box-shadow:
-      0 22px 44px -12px rgba(94,234,224,0.55),
-      inset -10px -10px 22px rgba(0,0,0,0.4),
-      inset 8px 8px 16px rgba(255,255,255,0.55);
-    transition:box-shadow .4s ease, filter .4s ease;
-  }
-  .core3d::after{
-    content:"";
-    position:absolute; top:14%; left:22%; width:34%; height:22%;
-    border-radius:50%;
-    background:rgba(255,255,255,0.75);
-    filter:blur(4px);
-  }
+  .scene{ width:190px; height:190px; position:relative; }
+  #orbCanvas{ position:absolute; inset:0; width:100%; height:100%; }
 
   .orb-shadow{
     position:absolute; bottom:-14px; left:50%; width:96px; height:16px;
@@ -158,26 +122,6 @@
     animation:shadowPulse 5s ease-in-out infinite;
   }
   @keyframes shadowPulse{ 0%,100%{ opacity:0.5; transform:translateX(-50%) scale(1); } 50%{ opacity:0.3; transform:translateX(-50%) scale(0.85); } }
-
-  /* états */
-  .scene[data-state="idle"] .core3d{ animation:breathe 3.6s ease-in-out infinite; }
-  @keyframes breathe{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.035); } }
-
-  .scene[data-state="listening"] .core3d{
-    animation:pulseFast .85s ease-in-out infinite;
-    filter:brightness(1.15);
-  }
-  @keyframes pulseFast{
-    0%,100%{ transform:scale(1); }
-    50%{ transform:scale(1.12); box-shadow:0 26px 54px -10px rgba(94,234,224,0.85), inset -10px -10px 22px rgba(0,0,0,0.35), inset 8px 8px 16px rgba(255,255,255,0.6); }
-  }
-  .scene[data-state="listening"] .ring-spin{ animation-duration:2.2s; }
-
-  .scene[data-state="thinking"] .ring-spin{ animation-duration:1s; }
-  .scene[data-state="thinking"] .core3d{ animation:thinkFlicker .9s ease-in-out infinite; }
-  @keyframes thinkFlicker{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.4) hue-rotate(20deg); } }
-
-  .scene[data-state="speaking"] .core3d{ animation:pulseFast .45s ease-in-out infinite; }
 
   .status-label{
     margin-top:14px; font-weight:700; font-size:11px; letter-spacing:2.5px;
@@ -297,11 +241,7 @@
 
 <div class="core-zone">
   <div class="scene" id="orb" data-state="idle">
-    <div class="orb3d">
-      <div class="ring-tilt r2"><div class="ring-spin"></div></div>
-      <div class="ring-tilt r1"><div class="ring-spin"></div></div>
-      <div class="core3d"></div>
-    </div>
+    <canvas id="orbCanvas"></canvas>
     <div class="orb-shadow"></div>
   </div>
   <div class="status-label" id="statusLabel">EN VEILLE</div>
@@ -351,6 +291,121 @@
   const overlay = document.getElementById('overlay');
   const closeBtn = document.getElementById('closeBtn');
   const clearBtn = document.getElementById('clearBtn');
+
+  // ---------- Blob de particules (orbe organique) ----------
+  (function initOrbBlob(){
+    const canvas = document.getElementById('orbCanvas');
+    const ctx = canvas.getContext('2d');
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+    let W, H, CX, CY, R;
+
+    function resize(){
+      const rect = canvas.getBoundingClientRect();
+      W = rect.width; H = rect.height;
+      canvas.width = W * DPR; canvas.height = H * DPR;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      CX = W/2; CY = H/2; R = Math.min(W,H) * 0.34;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // points répartis sur une sphère (spirale de Fibonacci)
+    const N = 950;
+    const pts = [];
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+    for(let i=0; i<N; i++){
+      const y = 1 - (i / (N - 1)) * 2;
+      const rad = Math.sqrt(Math.max(0, 1 - y*y));
+      const theta = goldenAngle * i;
+      pts.push({
+        x: Math.cos(theta) * rad,
+        y: y,
+        z: Math.sin(theta) * rad,
+        seed: Math.random() * 1000
+      });
+    }
+
+    // bruit organique bon marché (somme de sinusoïdes déphasées)
+    function noise3(x, y, z, t){
+      return (
+        Math.sin(x*2.1 + t*0.6) * Math.cos(y*1.7 - t*0.5) +
+        Math.sin(y*2.6 - t*0.4 + z*1.3) * 0.6 +
+        Math.sin(z*3.1 + t*0.7 + x*0.8) * 0.5
+      ) / 2.1;
+    }
+
+    let rotY = 0, rotX = 0.15;
+    let t = 0;
+    let pulse = 1;
+
+    function paramsForState(state){
+      switch(state){
+        case 'listening': return { amp:0.22, speed:2.2, rotSpeed:0.010, glow:1.35, pulseAmp:0.05, pulseSpeed:5 };
+        case 'thinking':  return { amp:0.30, speed:3.4, rotSpeed:0.028, glow:1.2,  pulseAmp:0.02, pulseSpeed:9 };
+        case 'speaking':  return { amp:0.26, speed:4.2, rotSpeed:0.014, glow:1.5,  pulseAmp:0.07, pulseSpeed:10 };
+        default:           return { amp:0.14, speed:0.9, rotSpeed:0.004, glow:1.0,  pulseAmp:0.02, pulseSpeed:1.4 };
+      }
+    }
+
+    function frame(){
+      requestAnimationFrame(frame);
+      const state = orb.getAttribute('data-state') || 'idle';
+      const p = paramsForState(state);
+      t += 0.016 * p.speed;
+      rotY += p.rotSpeed;
+      rotX = 0.15 + Math.sin(t*0.15) * 0.06;
+      pulse = 1 + Math.sin(t * p.pulseSpeed) * p.pulseAmp;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // halo ambiant
+      const halo = ctx.createRadialGradient(CX, CY, R*0.2, CX, CY, R*2.1);
+      halo.addColorStop(0, 'rgba(94,234,224,' + (0.28*p.glow) + ')');
+      halo.addColorStop(1, 'rgba(94,234,224,0)');
+      ctx.fillStyle = halo;
+      ctx.fillRect(0, 0, W, H);
+
+      const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+      const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+
+      const projected = [];
+      for(let i=0; i<N; i++){
+        const pt = pts[i];
+        const n = noise3(pt.x*2 + pt.seed*0.01, pt.y*2, pt.z*2, t);
+        const rr = (1 + n * p.amp) * pulse;
+        let x = pt.x * rr, y = pt.y * rr, z = pt.z * rr;
+
+        // rotation Y puis X
+        let x1 = x*cosY - z*sinY;
+        let z1 = x*sinY + z*cosY;
+        let y1 = y*cosX - z1*sinX;
+        let z2 = y*sinX + z1*cosX;
+
+        const scale = R / (2.6 - z2);
+        const sx = CX + x1 * scale;
+        const sy = CY + y1 * scale;
+
+        // éclairage simple : face à la caméra = plus lumineux ; bord (rim) = surbrillance
+        const facing = (z2 + 1) / 2; // 0..1
+        const rim = 1 - Math.min(1, Math.abs(z2));
+        const bright = Math.max(0.08, facing*0.55 + Math.pow(rim, 2.2) * 0.85);
+
+        projected.push({ sx, sy, z: z2, bright, size: 0.9 + facing*1.6 });
+      }
+
+      projected.sort(function(a,b){ return a.z - b.z; });
+
+      for(let i=0; i<projected.length; i++){
+        const d = projected[i];
+        const alpha = Math.min(1, d.bright * p.glow);
+        ctx.beginPath();
+        ctx.fillStyle = 'rgba(' + (170+Math.round(alpha*85)) + ',' + (235+Math.round(alpha*20)) + ',' + (230+Math.round(alpha*25)) + ',' + (0.15 + alpha*0.85) + ')';
+        ctx.arc(d.sx, d.sy, d.size, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+    requestAnimationFrame(frame);
+  })();
 
   let busy = false;
   let lastUserInput = null; // pour les corrections ("dis plutôt...")
