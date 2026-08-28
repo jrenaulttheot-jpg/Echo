@@ -106,6 +106,7 @@
     display:flex; align-items:center; justify-content:center;
     color:var(--text);
   }
+  .header-actions{ display:flex; gap:8px; }
   .gear svg{ width:17px; height:17px; }
   .gear:active{ transform:scale(0.9); }
 
@@ -284,8 +285,13 @@
 
 <header class="glass">
   <div class="brand"><span class="dot"></span><div>Écho<small>ASSISTANT LOCAL</small></div></div>
-  <div class="gear" id="settingsBtn">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09A1.65 1.65 0 0015.4 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.14.31.4.55.71.7.31.16.5.4.5.7v1.2c0 .3-.19.54-.5.7-.31.15-.57.39-.71.7z"/></svg>
+  <div class="header-actions">
+    <div class="gear" id="clearBtn" aria-label="Effacer l'historique">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+    </div>
+    <div class="gear" id="settingsBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09A1.65 1.65 0 0015.4 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.14.31.4.55.71.7.31.16.5.4.5.7v1.2c0 .3-.19.54-.5.7-.31.15-.57.39-.71.7z"/></svg>
+    </div>
   </div>
 </header>
 
@@ -344,6 +350,7 @@
   const settingsBtn = document.getElementById('settingsBtn');
   const overlay = document.getElementById('overlay');
   const closeBtn = document.getElementById('closeBtn');
+  const clearBtn = document.getElementById('clearBtn');
 
   let busy = false;
   let lastUserInput = null; // pour les corrections ("dis plutôt...")
@@ -400,6 +407,13 @@
 
   settingsBtn.addEventListener('click', ()=> overlay.classList.add('show'));
   closeBtn.addEventListener('click', ()=> overlay.classList.remove('show'));
+  clearBtn.addEventListener('click', ()=>{
+    if(!confirm('Effacer tout l\u2019historique de conversation ?')) return;
+    STORE.history = [];
+    persist();
+    log.innerHTML = '';
+    addLine('system', 'historique effacé.', {skipSave:true});
+  });
 
   function speak(text){
     if(!('speechSynthesis' in window)) return;
@@ -574,24 +588,23 @@
   }
 
   async function askAI(userText){
-    const res = await fetch('https://text.pollinations.ai/', {
+    const res = await fetch('https://text.pollinations.ai/openai', {
       method:'POST',
       headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify({
+        model:'openai-fast',
         messages:[
           { role:'system', content:"Tu es Écho, un assistant vocal personnel. Réponds en français, de façon concise (1 à 3 phrases), naturelle à l'oral (pas de markdown, pas de listes à puces)." },
           { role:'user', content:userText }
-        ],
-        model:'openai',
-        seed: Math.floor(Math.random()*999),
-        private:true
+        ]
       })
     });
     if(!res.ok){
       throw new Error('API ' + res.status);
     }
-    const text = await res.text();
-    return text.trim();
+    const data = await res.json();
+    const reply = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    return (reply || '').trim();
   }
 
   function respond(userText){
