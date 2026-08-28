@@ -320,11 +320,7 @@
 <div class="overlay" id="overlay">
   <div class="panel glass">
     <h2>CE QU'ÉCHO SAIT FAIRE</h2>
-    <div class="group"><h3>Intelligence artificielle (optionnel)</h3><p>Colle ta clé API Groq (gratuite) ci-dessous pour qu'Écho réponde à tout, pas seulement à ce qui est codé en dur.</p>
-      <input type="password" id="apiKeyInput" placeholder="gsk_...">
-      <div class="key-hint">Récupère une clé gratuite sur <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a>. Stockée uniquement sur cet appareil, jamais envoyée ailleurs qu'à Groq. Ne la partage jamais ailleurs, même en discussion.</div>
-      <button class="save-key-btn" id="saveKeyBtn">Enregistrer la clé</button>
-    </div>
+    <div class="group"><h3>Intelligence artificielle</h3><p>Pour tout ce qui n'est pas prévu dans les règles ci-dessous, Écho demande à une IA (Pollinations, gratuite, sans clé ni compte) et te répond vraiment intelligemment.</p></div>
     <div class="group"><h3>Discuter</h3><p>Salutations, comment ça va, ton nom, remerciements, au revoir.</p></div>
     <div class="group"><h3>Infos</h3><p>Heure actuelle, date du jour.</p></div>
     <div class="group"><h3>Recherche internet</h3><p>Uniquement avec ces formulations : "c'est quoi [sujet]", "qui est [nom]", ou "cherche [sujet]". Écho va alors chercher un résumé sur Wikipédia et te le lit à voix haute. Le reste du temps il reste en mode discussion locale, même si tu poses une question au hasard.</p></div>
@@ -348,12 +344,9 @@
   const settingsBtn = document.getElementById('settingsBtn');
   const overlay = document.getElementById('overlay');
   const closeBtn = document.getElementById('closeBtn');
-  const apiKeyInput = document.getElementById('apiKeyInput');
-  const saveKeyBtn = document.getElementById('saveKeyBtn');
 
   let busy = false;
   let lastUserInput = null; // pour les corrections ("dis plutôt...")
-  let groqKey = localStorage.getItem('echo_groq_key') || '';
 
   // ---------- Mémoire persistante ----------
   const STORE = {
@@ -405,17 +398,8 @@
     setTimeout(()=> setState('idle','EN VEILLE'), 2200);
   }
 
-  settingsBtn.addEventListener('click', ()=>{
-    apiKeyInput.value = groqKey;
-    overlay.classList.add('show');
-  });
+  settingsBtn.addEventListener('click', ()=> overlay.classList.add('show'));
   closeBtn.addEventListener('click', ()=> overlay.classList.remove('show'));
-  saveKeyBtn.addEventListener('click', ()=>{
-    groqKey = apiKeyInput.value.trim();
-    localStorage.setItem('echo_groq_key', groqKey);
-    addLine('system', groqKey ? 'clé Groq enregistrée. Écho peut maintenant répondre à tout.' : 'clé Groq effacée.');
-    overlay.classList.remove('show');
-  });
 
   function speak(text){
     if(!('speechSynthesis' in window)) return;
@@ -589,29 +573,25 @@
     return { title: sumData.title, text: sentences.join(' ') };
   }
 
-  async function askGroq(userText){
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  async function askAI(userText){
+    const res = await fetch('https://text.pollinations.ai/', {
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':'Bearer ' + groqKey
-      },
+      headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify({
-        model:'llama-3.3-70b-versatile',
         messages:[
           { role:'system', content:"Tu es Écho, un assistant vocal personnel. Réponds en français, de façon concise (1 à 3 phrases), naturelle à l'oral (pas de markdown, pas de listes à puces)." },
           { role:'user', content:userText }
         ],
-        max_tokens:300
+        model:'openai',
+        seed: Math.floor(Math.random()*999),
+        private:true
       })
     });
     if(!res.ok){
-      const errText = await res.text();
-      throw new Error('API ' + res.status + ' : ' + errText.slice(0,150));
+      throw new Error('API ' + res.status);
     }
-    const data = await res.json();
-    const reply = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-    return (reply || '').trim();
+    const text = await res.text();
+    return text.trim();
   }
 
   function respond(userText){
@@ -665,13 +645,8 @@
           const reply = result.text;
           addLine('assistant', reply + '  (source : Wikipédia — ' + result.title + ')');
           speak(reply);
-        }else if(groqKey){
-          await askGroqAndReply(userText);
         }else{
-          const reply = "Je n'ai rien trouvé de fiable sur Wikipédia. Je t'ouvre une recherche Google à la place.";
-          window.open('https://www.google.com/search?q=' + encodeURIComponent(query), '_blank');
-          addLine('assistant', reply);
-          speak(reply);
+          await askAIAndReply(userText);
         }
       }catch(err){
         errorLine('recherche impossible : ' + err.message);
@@ -680,27 +655,15 @@
       return;
     }
 
-    // 3) sinon, si une clé Groq est configurée, on demande à une vraie IA
-    if(groqKey){
-      await askGroqAndReply(userText);
-      busy = false;
-      return;
-    }
-
-    const fallback = pick([
-      "Je n'ai pas cette réponse en stock. Pour que je cherche sur internet, dis \u00ab c'est quoi... \u00bb, \u00ab qui est... \u00bb ou \u00ab cherche... \u00bb. Tu peux aussi ajouter une clé Groq gratuite dans les réglages pour que je réponde à tout.",
-      "Commande non reconnue. Touche la roue crantée pour voir ce que je sais faire, ou ajoute une clé Groq (gratuite) dans les réglages pour débloquer les réponses libres.",
-      "Je ne connais pas encore ça en local. Essaie \u00ab qui est... \u00bb ou \u00ab cherche... \u00bb, ou configure une clé Groq gratuite dans les réglages."
-    ]);
-    addLine('assistant', fallback);
-    speak(fallback);
+    // 3) sinon, on demande à l'IA (Pollinations, gratuit, sans clé)
+    await askAIAndReply(userText);
     busy = false;
   }
 
-  async function askGroqAndReply(userText){
+  async function askAIAndReply(userText){
     setState('thinking', 'JE RÉFLÉCHIS');
     try{
-      const reply = await askGroq(userText);
+      const reply = await askAI(userText);
       if(reply){
         addLine('assistant', reply);
         speak(reply);
