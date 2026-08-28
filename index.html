@@ -587,7 +587,28 @@
     return { title: sumData.title, text: sentences.join(' ') };
   }
 
-  async function askAI(userText){
+  async function askLLM7(userText){
+    const res = await fetch('https://api.llm7.io/v1/chat/completions', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer unused'
+      },
+      body: JSON.stringify({
+        model:'gpt-4o-mini-2024-07-18',
+        messages:[
+          { role:'system', content:"Tu es Écho, un assistant vocal personnel. Réponds en français, de façon concise (1 à 3 phrases), naturelle à l'oral (pas de markdown, pas de listes à puces)." },
+          { role:'user', content:userText }
+        ]
+      })
+    });
+    if(!res.ok) throw new Error('LLM7 API ' + res.status);
+    const data = await res.json();
+    const reply = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    return (reply || '').trim();
+  }
+
+  async function askPollinations(userText){
     const res = await fetch('https://text.pollinations.ai/openai', {
       method:'POST',
       headers:{ 'Content-Type':'application/json' },
@@ -599,12 +620,22 @@
         ]
       })
     });
-    if(!res.ok){
-      throw new Error('API ' + res.status);
-    }
+    if(!res.ok) throw new Error('Pollinations API ' + res.status);
     const data = await res.json();
     const reply = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
     return (reply || '').trim();
+  }
+
+  async function askAI(userText){
+    try{
+      return await askLLM7(userText);
+    }catch(err1){
+      try{
+        return await askPollinations(userText);
+      }catch(err2){
+        throw new Error(err1.message + ' / ' + err2.message);
+      }
+    }
   }
 
   function respond(userText){
