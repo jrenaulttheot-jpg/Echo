@@ -304,13 +304,13 @@
       W = rect.width; H = rect.height;
       canvas.width = W * DPR; canvas.height = H * DPR;
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      CX = W/2; CY = H/2; R = Math.min(W,H) * 0.34;
+      CX = W/2; CY = H/2; R = Math.min(W,H) * 0.36;
     }
     resize();
     window.addEventListener('resize', resize);
 
     // points répartis sur une sphère (spirale de Fibonacci)
-    const N = 950;
+    const N = 1500;
     const pts = [];
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
     for(let i=0; i<N; i++){
@@ -324,6 +324,10 @@
         seed: Math.random() * 1000
       });
     }
+
+    // lumière fixe façon studio, en haut à gauche/devant — pour le reflet chromé
+    const LIGHT = normalize3(-0.5, -0.7, 0.55);
+    function normalize3(x,y,z){ const l = Math.sqrt(x*x+y*y+z*z); return {x:x/l, y:y/l, z:z/l}; }
 
     // bruit organique bon marché (somme de sinusoïdes déphasées)
     function noise3(x, y, z, t){
@@ -340,10 +344,10 @@
 
     function paramsForState(state){
       switch(state){
-        case 'listening': return { amp:0.22, speed:2.2, rotSpeed:0.010, glow:1.35, pulseAmp:0.05, pulseSpeed:5 };
-        case 'thinking':  return { amp:0.30, speed:3.4, rotSpeed:0.028, glow:1.2,  pulseAmp:0.02, pulseSpeed:9 };
-        case 'speaking':  return { amp:0.26, speed:4.2, rotSpeed:0.014, glow:1.5,  pulseAmp:0.07, pulseSpeed:10 };
-        default:           return { amp:0.14, speed:0.9, rotSpeed:0.004, glow:1.0,  pulseAmp:0.02, pulseSpeed:1.4 };
+        case 'listening': return { amp:0.20, speed:2.2, rotSpeed:0.010, glow:1.3,  pulseAmp:0.05, pulseSpeed:5 };
+        case 'thinking':  return { amp:0.26, speed:3.4, rotSpeed:0.028, glow:1.15, pulseAmp:0.02, pulseSpeed:9 };
+        case 'speaking':  return { amp:0.23, speed:4.2, rotSpeed:0.014, glow:1.45, pulseAmp:0.07, pulseSpeed:10 };
+        default:           return { amp:0.13, speed:0.9, rotSpeed:0.004, glow:1.0,  pulseAmp:0.02, pulseSpeed:1.4 };
       }
     }
 
@@ -357,13 +361,28 @@
       pulse = 1 + Math.sin(t * p.pulseSpeed) * p.pulseAmp;
 
       ctx.clearRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'source-over';
 
-      // halo ambiant
-      const halo = ctx.createRadialGradient(CX, CY, R*0.2, CX, CY, R*2.1);
-      halo.addColorStop(0, 'rgba(94,234,224,' + (0.28*p.glow) + ')');
-      halo.addColorStop(1, 'rgba(94,234,224,0)');
+      // halo ambiant — contenu bien à l'intérieur du canvas pour ne jamais former un carré visible
+      const haloR = Math.min(W, H) / 2 * 0.98;
+      const halo = ctx.createRadialGradient(CX, CY, R*0.3, CX, CY, haloR);
+      halo.addColorStop(0, 'rgba(70,150,255,' + (0.22*p.glow) + ')');
+      halo.addColorStop(0.6, 'rgba(70,150,255,' + (0.08*p.glow) + ')');
+      halo.addColorStop(1, 'rgba(70,150,255,0)');
       ctx.fillStyle = halo;
       ctx.fillRect(0, 0, W, H);
+
+      // base pleine (évite les "trous" entre les points) — sphère bleu profond avec ombre au bord
+      const baseR = R * pulse * 1.02;
+      const base = ctx.createRadialGradient(CX - baseR*0.28, CY - baseR*0.32, baseR*0.15, CX, CY, baseR);
+      base.addColorStop(0, 'rgba(120,200,255,0.95)');
+      base.addColorStop(0.45, 'rgba(35,120,230,0.95)');
+      base.addColorStop(0.8, 'rgba(15,60,140,0.95)');
+      base.addColorStop(1, 'rgba(6,20,55,0.85)');
+      ctx.fillStyle = base;
+      ctx.beginPath();
+      ctx.arc(CX, CY, baseR, 0, Math.PI*2);
+      ctx.fill();
 
       const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
       const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
@@ -375,34 +394,45 @@
         const rr = (1 + n * p.amp) * pulse;
         let x = pt.x * rr, y = pt.y * rr, z = pt.z * rr;
 
-        // rotation Y puis X
+        // rotation Y puis X (position ET normale approx = direction d'origine)
         let x1 = x*cosY - z*sinY;
         let z1 = x*sinY + z*cosY;
         let y1 = y*cosX - z1*sinX;
         let z2 = y*sinX + z1*cosX;
 
+        let nx1 = pt.x*cosY - pt.z*sinY;
+        let nz1 = pt.x*sinY + pt.z*cosY;
+        let ny1 = pt.y*cosX - nz1*sinX;
+        let nz2 = pt.y*sinX + nz1*cosX;
+
         const scale = R / (2.6 - z2);
         const sx = CX + x1 * scale;
         const sy = CY + y1 * scale;
 
-        // éclairage simple : face à la caméra = plus lumineux ; bord (rim) = surbrillance
         const facing = (z2 + 1) / 2; // 0..1
         const rim = 1 - Math.min(1, Math.abs(z2));
-        const bright = Math.max(0.08, facing*0.55 + Math.pow(rim, 2.2) * 0.85);
+        const dot = Math.max(0, nx1*LIGHT.x + ny1*LIGHT.y + nz2*LIGHT.z);
+        const spec = Math.pow(dot, 9); // reflet chromé net
+        const bright = Math.max(0.05, facing*0.4 + Math.pow(rim, 2.2) * 0.75);
 
-        projected.push({ sx, sy, z: z2, bright, size: 0.9 + facing*1.6 });
+        projected.push({ sx, sy, z: z2, bright, spec, size: 1.1 + facing*2.0 });
       }
 
       projected.sort(function(a,b){ return a.z - b.z; });
 
+      ctx.globalCompositeOperation = 'lighter';
       for(let i=0; i<projected.length; i++){
         const d = projected[i];
-        const alpha = Math.min(1, d.bright * p.glow);
+        const glowAlpha = Math.min(1, (d.bright*0.55 + d.spec*0.9) * p.glow);
+        const r = Math.min(255, 40 + d.bright*70 + d.spec*195);
+        const g = Math.min(255, 110 + d.bright*90 + d.spec*150);
+        const b = Math.min(255, 220 + d.bright*35 + d.spec*35);
         ctx.beginPath();
-        ctx.fillStyle = 'rgba(' + (170+Math.round(alpha*85)) + ',' + (235+Math.round(alpha*20)) + ',' + (230+Math.round(alpha*25)) + ',' + (0.15 + alpha*0.85) + ')';
+        ctx.fillStyle = 'rgba(' + (r|0) + ',' + (g|0) + ',' + (b|0) + ',' + (0.35 + glowAlpha*0.65) + ')';
         ctx.arc(d.sx, d.sy, d.size, 0, Math.PI*2);
         ctx.fill();
       }
+      ctx.globalCompositeOperation = 'source-over';
     }
     requestAnimationFrame(frame);
   })();
